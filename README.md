@@ -92,3 +92,59 @@ C1–C4 僅供污染敏感度研究；normal-only 主比較使用 C0。
 
 測試涵蓋兩套實驗的所有 modes、共用 test holdout、時間順序、合成列 ID、
 row ID／標籤對齊，以及只使用 training 資料擬合 scaler。
+
+## 三個模型與 P0 執行
+
+```powershell
+# Exp2：時間切分，先在 validation 跑通三個 tiers。
+uv run --frozen python run_experiment.py --experiment exp2 --mode P0
+
+# Exp1：預設跑完全部 5 folds；只跑一個 fold 可加 --folds 0。
+uv run --frozen python run_experiment.py --experiment exp1 --mode P0
+
+# 多個模型 seeds，共用同一 raw split。
+uv run --frozen python run_experiment.py --experiment exp2 --seeds 42 43 44
+```
+
+| Tier | 模型檔案 | P0 訓練與分數 |
+| --- | --- | --- |
+| T1 | `src/models/three_sigma.py` | 固定 V14，僅正常 training 估計平均與標準差（ddof=0）；`abs((V14-mean)/std)` |
+| T2 | `src/models/isolation_forest.py` | 僅正常 training；200 trees、max_samples=256，分數為負的 sklearn score_samples |
+| T3 | `src/models/logistic_regression.py` | 兩類 training 標籤；C=1、class_weight=balanced、lbfgs、max_iter=2000，分數為 fraud 機率 |
+
+V14 是團隊指定的固定特徵，不重新計算 KS，也不重新挑選 feature。
+T2 固定使用 V14、V10、V12、V4、V11、V17；T3 使用全部 30 個特徵。
+T2 的 V14-only ablation 使用 `IsolationForestDetector(features=("V14",))`，
+原始全特徵版本使用 `features=None`。既有 P0 結果是更改前的全特徵版本，
+六特徵版本應指定新的輸出目錄重跑，避免覆蓋原始比較結果。T1/T2 的 Time、Amount scaler 僅 fit 正常 training，
+T3 的 scaler fit 全部 training；兩者仍使用相同的 raw split、原始 row IDs 與驗證標籤。
+模型本身也會根據 training labels 選擇允許的訓練母體。
+
+三個模型提供相同的 `fit(X, y)`、`score_samples(X)`、`predict(X)` 接口。
+分數一律越大越異常，`predict` 回傳 0/1。
+T1 固定 `score >= 3`；T2/T3 以 validation 最大 F1 選門檻，若同分則選較高門檻，
+並使用 `score >= threshold` 判定。Isolation Forest 的 contamination="auto" 僅為
+sklearn 內部設定；本流程不使用其 predict 或內建 offset 決策。
+
+目前是固定超參數的初始 P0 實驗，不含超參數搜尋。
+預設只計算 validation 指標；在 validation 上選出的 F1 不是獨立泛化估計。
+所有設計固定後，可加 `--evaluate-test` 評估 test；請先凍結設定，避免反覆以 test 調參。
+
+結果預設放在 `outputs/P0/<experiment>/`（可用 `--output-dir` 指定獨立目錄）：
+
+- `metrics.csv`：每個 fold/seed/tier 的 AP（Average Precision，非梯形 PR-AUC）、
+  ROC-AUC、F1、precision、recall、FPR、混淆矩陣、門檻與時間。
+- `summary.csv`：執行的 fold/seed 組合之 mean、sample std、count；單次執行的 std 留白。
+  folds 與 seeds 的描述統計不代表獨立的顯著性檢定。
+- `run.json`：資料 SHA256、設定、版本、硬體資訊與執行狀態。
+- `fold_<n>/split_ids.npz`：共用切分的原始 row IDs。
+- `fold_<n>/*.joblib`：model、scaler、feature_columns 與 metadata；`threshold_` 存在模型內。
+- `fold_<n>/*_val_predictions.csv`：row_id、y_true、score、threshold、y_pred；
+  指定 `--evaluate-test` 才產生 test predictions。
+
+重新載入時先按 `feature_columns` 取 raw features，以 bundle 的 scaler 轉換
+Time、Amount，再呼叫模型。若要精確重現 CSV 中落在門檻上的比較，使用
+`pd.read_csv(..., float_precision="round_trip")`。
+同一輸出路徑重跑會覆寫同名檔案，正式實驗應指定新的 `--output-dir`。
+時間為模型 fit 與批次 score，未含前處理或 IO；每筆延遲是批次攤提值。
+T1 與 lbfgs LR 為確定性方法，改 seed 不一定產生差異。

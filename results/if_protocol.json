@@ -1,0 +1,13 @@
+{
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "fold": 0,
+  "training": "normal P0 only",
+  "evaluation": "validation only",
+  "trees": 200,
+  "feature_selection": "V14 and six features fixed from team EDA; no KS recomputation",
+  "limitation": "exp1 fold 0 only; validation used for diagnosis and F1 threshold selection"
+}
