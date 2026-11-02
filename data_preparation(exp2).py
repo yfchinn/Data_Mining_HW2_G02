@@ -111,18 +111,23 @@ def chronological_split(
 # 3. Train-only RobustScaler
 # ==========================================================
 
-def scale_features(train_df, val_df, test_df):
+def scale_features(train_df, val_df, test_df, fit_normal_only=False):
 
     scale_cols = ["Time", "Amount"]
 
     scaler = RobustScaler()
 
     # Fit using Training Set only.
-    scaler.fit(train_df[scale_cols])
+    fit_frame = train_df.loc[train_df["Class"].eq(0)] if fit_normal_only else train_df
+    if fit_frame.empty:
+        raise ValueError("No training rows available for scaler fitting.")
+    scaler.fit(fit_frame[scale_cols])
 
     result = {
         "scaler": scaler,
-        "feature_columns": FEATURES.copy()
+        "feature_columns": FEATURES.copy(),
+        "metadata": {"scaler_population": "normal_train" if fit_normal_only else "all_train",
+                     "scaler_fit_rows": len(fit_frame)}
     }
 
     for name, frame in [
@@ -157,7 +162,8 @@ def scale_features(train_df, val_df, test_df):
 def prepare_data(
     csv_path="data/creditcard.csv",
     train_ratio=0.6,
-    val_ratio=0.2
+    val_ratio=0.2,
+    fit_normal_only=False
 ):
     df = load_data(csv_path)
 
@@ -170,7 +176,8 @@ def prepare_data(
     data = scale_features(
         train_df,
         val_df,
-        test_df
+        test_df,
+        fit_normal_only=fit_normal_only
     )
 
     train_ids = set(data["train_row_ids"])
@@ -182,6 +189,7 @@ def prepare_data(
     assert val_ids.isdisjoint(test_ids)
 
     data["metadata"] = {
+        **data["metadata"],
         "split": "chronological",
         "scaling": "RobustScaler",
         "sampling": "none"
@@ -737,6 +745,7 @@ def prepare_sampling_data(
 
     # Validation and Test remain unchanged.
     return {
+        **data,
         "X_train": X,
         "y_train": y,
         "train_row_ids": ids,
@@ -750,6 +759,7 @@ def prepare_sampling_data(
         "scaler": data["scaler"],
 
         "metadata": {
+            **data["metadata"],
             "sampling": sampling,
             "sampling_ratio": sampling_ratio,
             "outlier_removal": outlier_removal,
@@ -766,7 +776,7 @@ def prepare_sampling_data(
 
 def prepare_contamination_data(
     data,
-    fraud_counts=(0, 30, 90, 180, 360),
+    fraud_counts=None,
     random_state=42
 ):
     X_train = data["X_train"]
@@ -777,11 +787,14 @@ def prepare_contamination_data(
     normal_positions = np.flatnonzero(labels == 0)
     fraud_positions = np.flatnonzero(labels == 1)
 
-    counts = tuple(fraud_counts)
+    if fraud_counts is None:
+        limit = min(360, len(fraud_positions))
+        counts = tuple(int(limit * fraction) for fraction in (0, 1/12, 1/4, 1/2, 1))
+    else:
+        counts = tuple(fraud_counts)
 
     if (
-        len(set(counts)) != len(counts)
-        or any(
+        any(
             c < 0 or c > len(fraud_positions)
             for c in counts
         )
@@ -809,6 +822,7 @@ def prepare_contamination_data(
         total = len(selected)
 
         experiments[f"C{i}"] = {
+            **data,
             "X_train": (
                 X_train.iloc[selected]
                 .reset_index(drop=True)
@@ -827,7 +841,8 @@ def prepare_contamination_data(
             "y_test": data["y_test"],
 
             "metadata": {
-                "experiment": f"C{i}",
+                **data["metadata"],
+                "mode": f"C{i}",
                 "normal_count": len(normal_positions),
                 "fraud_count": fraud_count,
                 "total_count": total,
