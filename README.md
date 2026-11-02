@@ -115,8 +115,7 @@ uv run --frozen python run_experiment.py --experiment exp2 --seeds 42 43 44
 V14 是團隊指定的固定特徵，不重新計算 KS，也不重新挑選 feature。
 T2 固定使用 V14、V10、V12、V4、V11、V17；T3 使用全部 30 個特徵。
 T2 的 V14-only ablation 使用 `IsolationForestDetector(features=("V14",))`，
-原始全特徵版本使用 `features=None`。既有 P0 結果是更改前的全特徵版本，
-六特徵版本應指定新的輸出目錄重跑，避免覆蓋原始比較結果。T1/T2 的 Time、Amount scaler 僅 fit 正常 training，
+`features=None` 僅供重現歷史全特徵診斷。目前 P0 的模型、預測與結果已統一為六特徵 T2。T1/T2 的 Time、Amount scaler 僅 fit 正常 training，
 T3 的 scaler fit 全部 training；兩者仍使用相同的 raw split、原始 row IDs 與驗證標籤。
 模型本身也會根據 training labels 選擇允許的訓練母體。
 
@@ -148,3 +147,36 @@ Time、Amount，再呼叫模型。若要精確重現 CSV 中落在門檻上的�
 同一輸出路徑重跑會覆寫同名檔案，正式實驗應指定新的 `--output-dir`。
 時間為模型 fit 與批次 score，未含前處理或 IO；每筆延遲是批次攤提值。
 T1 與 lbfgs LR 為確定性方法，改 seed 不一定產生差異。
+
+## T3 P0–P6 採樣比較
+
+```powershell
+uv run --frozen python run_t3_sampling.py --experiment exp2
+uv run --frozen python run_t3_sampling.py --experiment exp1
+```
+
+每套實驗執行 15 組：P0、P1–P4 各 1:1/5:1/10:1 normal:fraud，
+以及 P5/P6。固定 C=1、class_weight=balanced、seed=42，SMOTE fraud/normal
+預設 0.01（可用 `--smote-ratio` 指定）。exp1 跑全部五個 folds。
+同一 fold 共用採樣前的 training-fitted scaler 與 validation，僅 training 做處理。
+P3/P4 沿用組員的 candidate-based K-Medoids 近似方法。
+各模式分別以 validation 選 F1 門檻，結果存於 `outputs/T3_sampling/<experiment>/`。
+輸出包括 metrics、summary、split IDs、模型及 validation predictions；不評估 test。
+單一 seed 的採樣結果尚未衡量 sampling seed 的不確定性，validation 最佳 F1
+也有門檻選擇的樂觀偏差；不得直接視為最終 test 效能。
+
+## IF contamination ablation
+
+```powershell
+uv run --frozen python run_if_contamination.py --experiment exp2
+uv run --frozen python run_if_contamination.py --experiment exp1
+```
+
+固定六特徵、200 trees、256 samples/tree、正常訓練樣本及 normal-only scaler，
+以 seeds 42/43/44 比較 C0–C4。fraud 子集依 seed 選擇並保持巢狀包含。
+資料排序固定為正常列（依原始 ID 排序）後接 fraud 列，避免各 C 模式獨立打亂正常列。
+此排序與原本 exp1 P0 順序不同，因此差異一律對本實驗自己的 C0 計算。
+刻意直接 fit 所有選入樣本，避免主模型的 normal-only 篩選把污染 fraud 再次移除。
+這是污染敏感度研究；正式三 tier 主比較的 IF 仍為 normal-only。
+僅評估 validation，結果存於 `outputs/IF_contamination/<experiment>/`。
+實際污染百分比由資料計算，C4 也只有約 0.17–0.21%，不是 10%。
