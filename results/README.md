@@ -1,6 +1,6 @@
 # 實驗進度摘要（2026-11-02）
 
-所有以下結果均為 validation，尚未評估 test。
+以下保留 validation 階段結果；正式 test 主結果、時間成本與顯著性分析已完成，見 [FINAL_TEST.md](FINAL_TEST.md)。
 IF contamination 與特徵 ablation 已完成，詳見 [IF_ABLATIONS.md](IF_ABLATIONS.md)。
 T3 P0–P6 已完成 exp1 五個 folds 與 exp2，詳見 [T3_SAMPLING.md](T3_SAMPLING.md)。
 AP 為 Average Precision。T2/T3 的 F1 門檻由同一 validation 選出，並非獨立泛化估計。
@@ -14,12 +14,12 @@ T1/T2 只用正常 training；T3 使用兩類 training 標籤。
 
 | 模型 | exp1 AP | exp1 F1 | exp2 AP | exp2 F1 |
 | --- | --- | --- | --- | --- |
-| V14 3σ | 0.5970 ± 0.0340 | 0.1767 ± 0.0087 | 0.4841 | 0.1020 |
-| IF（六特徵） | 0.5616 ± 0.0439 | 0.6179 ± 0.0222 | 0.3640 | 0.4800 |
-| LR | 0.7477 ± 0.0559 | 0.8190 ± 0.0145 | 0.7727 | 0.7921 |
+| V14 3σ | 0.5970 ± 0.0340 | 0.1767 ± 0.0087 | 0.4841 ± 0.0000 | 0.1020 ± 0.0000 |
+| IF（六特徵） | 0.6110 ± 0.0348 | 0.6573 ± 0.0209 | 0.4489 ± 0.1087 | 0.5388 ± 0.0631 |
+| LR | 0.7477 ± 0.0559 | 0.8190 ± 0.0145 | 0.7727 ± 0.0000 | 0.7921 ± 0.0000 |
 
-exp1：固定 holdout test，5 個 stratified folds、model seed=42，報告跨 fold mean±sample std。
-exp2：chronological 60/20/20，單次 model seed=42。
+exp1：固定 holdout test，5 個 stratified folds、model seeds=42/43/44，先平均各 fold 的 seeds，再報告跨 fold mean±sample std。
+exp2：chronological 60/20/20，model seeds=42/43/44，報告跨 seed mean±sample std。
 來源：`p0_exp1_metrics.csv`、`p0_exp2_metrics.csv`。
 
 ## 歷史 IF 診斷（選擇六特徵的依據，非目前主模型結果）
@@ -50,9 +50,11 @@ exp1 此處僅使用 fold 0，不能將下表的跨 seed 變異與上表跨 fold
 - T2 程式預設已改成 V14、V10、V12、V4、V11、V17；保留 V14-only ablation。
 - 六特徵版在 exp2 的 seed 波動仍大，不能宣稱優於 V14-only。
 - 六特徵版已完成 exp1 全部 5 folds 與 exp2 P0；舊全特徵主結果、模型及預測已替換。
-- T3 runner 已完成 P0–P6 比較，維持相同 raw split/validation；固定 seed=42、balanced、C=1，SMOTE ratio=0.01。
+- T3 runner 已完成 P0–P6 比較，維持相同 raw split/validation；採樣 seeds=42/43/44、split seed 固定 42、balanced、C=1，SMOTE ratio=0.01。
 - IF contamination C0–C4 已完成 exp1 五個 folds、exp2，各三個 seeds；主比較仍使用 normal-only。
-- 分工範圍到正式 test 評估與顯著性分析；下一步為凍結設定、補齊主比較 seeds，再做 test。
+- 分工範圍到正式 test 評估與顯著性分析；主比較 seeds=42/43/44 已補齊，設定已凍結；正式 test 與配對 bootstrap 顯著性分析已完成。
 - 55 項測試通過。環境使用 uv，Python 3.11，依賴由 uv.lock 鎖定。
 
 完整模型與逐筆預測存於本機 `outputs/`，未納入 Git；本目錄保留小型結果表以供追蹤。
+
+主比較多 seed 的詳細統計與 seed/fold 區分見 [P0_SEEDS.md](P0_SEEDS.md)。

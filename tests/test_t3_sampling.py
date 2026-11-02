@@ -28,3 +28,10 @@ def test_sampling_runner_preserves_validation(experiment, tmp_path):
             pd.testing.assert_frame_equal(prediction[['row_id','y_true']],baseline[['row_id','y_true']])
         assert records.loc[records['mode'].str.startswith('P1'), 'training_rows'].max() < records.loc[records['mode'].eq('P0'), 'training_rows'].iloc[0]
     assert json.loads((output/'run.json').read_text())['status']=='complete'
+    second=tmp_path/'seed43'
+    run(experiment,source,second,n_splits=2,seed=43,smote_ratio=.1,split_seed=42)
+    for fold in result.fold.unique():
+        first_ids=np.load(output/f'fold_{fold}'/'split_ids.npz')
+        second_ids=np.load(second/f'fold_{fold}'/'split_ids.npz')
+        for partition in ('train','val','test'):
+            np.testing.assert_array_equal(first_ids[f'{partition}_row_ids'],second_ids[f'{partition}_row_ids'])

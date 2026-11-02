@@ -162,8 +162,20 @@ uv run --frozen python run_t3_sampling.py --experiment exp1
 P3/P4 沿用組員的 candidate-based K-Medoids 近似方法。
 各模式分別以 validation 選 F1 門檻，結果存於 `outputs/T3_sampling/<experiment>/`。
 輸出包括 metrics、summary、split IDs、模型及 validation predictions；不評估 test。
-單一 seed 的採樣結果尚未衡量 sampling seed 的不確定性，validation 最佳 F1
+原始單 seed 結果已補齊三個採樣 seeds；validation 最佳 F1
 也有門檻選擇的樂觀偏差；不得直接視為最終 test 效能。
+
+補齊採樣 seeds 43/44 並合併既有 42：
+
+```powershell
+uv run --frozen python complete_t3_seeds.py
+```
+
+`run_t3_sampling.py --seed` 控制採樣與模型，`--split-seed` 控制 raw split（預設固定 42）。
+補跑模型分開存放在 `seed_43/`、`seed_44/`。合併結果涵蓋每個 fold、每個模式的三個 seeds。
+exp1 先平均各 fold 的 seeds，再計算跨 fold mean/std；exp2 計算跨 seed mean/std。
+各 fold 內的 seed mean/std 另存 results 的 `*_within_fold_seeds.csv`。
+validation 門檻選擇的樂觀偏差仍存在，不能直接視為最終 test 效能。
 
 ## IF contamination ablation
 
@@ -180,3 +192,12 @@ uv run --frozen python run_if_contamination.py --experiment exp1
 這是污染敏感度研究；正式三 tier 主比較的 IF 仍為 normal-only。
 僅評估 validation，結果存於 `outputs/IF_contamination/<experiment>/`。
 實際污染百分比由資料計算，C4 也只有約 0.17–0.21%，不是 10%。
+
+## 正式 test 評估
+
+正式結果見 `results/FINAL_TEST.md`。`evaluate_final_test.py` 載入已保存的 P0
+模型及 validation 門檻，評估兩套實驗的三個 tiers，並執行 1000 次配對、
+按類別分層的 transaction bootstrap，比較 IF 與 LR 的平均 AP 差異。
+不重新訓練模型、不選 test 門檻；設定在評分前寫入 frozen_protocol.json。
+輸出已存於 `outputs/final_test/`，程式會拒絕覆寫既有目錄。
+主要結果、混淆矩陣、訓練／推論時間與 CI 保留在 results 的 final_test 檔案中。

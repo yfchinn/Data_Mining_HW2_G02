@@ -1,0 +1,35 @@
+{
+  "experiment": "exp2",
+  "mode": "P0",
+  "folds": [
+    0
+  ],
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "split_seed": 42,
+  "n_splits": 1,
+  "csv_path": "C:\\Users\\ted10\\Desktop\\VScode\\python\\Data_Mining_HW2_G02\\data\\creditcard.csv",
+  "sha256": "76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89",
+  "evaluate_test": false,
+  "threshold_rule": "T1 fixed score >= 3; T2/T3 maximize validation F1; higher threshold wins ties",
+  "feature_selection": "V14 fixed by team; KS is not recomputed",
+  "n_estimators": 200,
+  "max_samples": 256,
+  "logistic_c": 1.0,
+  "python": "3.11.16",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "libraries": {
+    "numpy": "1.26.4",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.5.2",
+    "imbalanced-learn": "0.13.0",
+    "scikit-learn-extra": "0.3.0"
+  },
+  "timing": "fit and batched score only; excludes preprocessing/IO; ms_per_sample is batch amortized",
+  "status": "complete",
+  "result_rows": 9
+}
