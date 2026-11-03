@@ -1,5 +1,9 @@
 # 實驗進度摘要（2026-11-02）
 
+2026-11-03：test 10% 的 T3 P0–P6 追加探索已完成，三個 seeds，
+exp1 約 72/18/10、exp2 70/20/10；僅比較 validation，見 [T3_TEST10.md](T3_TEST10.md)。
+validation 樣本隨切分改變，不與原始結果做配對顯著性比較；原正式 test 結果保留。
+
 以下保留 validation 階段結果；正式 test 主結果、時間成本與顯著性分析已完成，見 [FINAL_TEST.md](FINAL_TEST.md)。
 IF contamination 與特徵 ablation 已完成，詳見 [IF_ABLATIONS.md](IF_ABLATIONS.md)。
 T3 P0–P6 已完成 exp1 五個 folds 與 exp2，詳見 [T3_SAMPLING.md](T3_SAMPLING.md)。

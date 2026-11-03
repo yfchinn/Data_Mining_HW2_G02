@@ -14,16 +14,21 @@ from src.models import LogisticRegressionDetector
 
 
 def run(experiment='exp2', csv_path=None, output_dir=None, n_splits=5, seed=42, smote_ratio=.01,
-        split_seed=42):
-    output = Path(output_dir or ROOT / 'outputs' / 'T3_sampling' / experiment)
+        split_seed=42, test_ratio=.20):
+    default_group = 'T3_sampling' if test_ratio == .20 else f'T3_sampling_test{test_ratio:g}'
+    output = Path(output_dir or ROOT / 'outputs' / default_group / experiment)
     output.mkdir(parents=True, exist_ok=True)
     configs = _module('exp1').sampling_configurations(smote_ratio)
     records = []
     protocol = dict(experiment=experiment, modes=[c[0] for c in configs], seed=seed, split_seed=split_seed,
+                    test_ratio=test_ratio,
+                    train_ratio=(1-test_ratio)*(n_splits-1)/n_splits if experiment=='exp1' else 1-test_ratio-.2,
+                    val_ratio=(1-test_ratio)/n_splits if experiment=='exp1' else .2,
                     smote_ratio=smote_ratio, C=1, class_weight='balanced',
                     evaluation='validation only', status='running')
     (output/'run.json').write_text(json.dumps(protocol, indent=2))
-    for fold, base in iter_prepared_folds(experiment, csv_path=csv_path, n_splits=n_splits, random_state=split_seed):
+    for fold, base in iter_prepared_folds(experiment, csv_path=csv_path, n_splits=n_splits,
+            random_state=split_seed, test_ratio=test_ratio, train_ratio=1-test_ratio-.2, val_ratio=.2):
         directory = output / f'fold_{fold}'
         directory.mkdir(exist_ok=True)
         np.savez_compressed(directory/'split_ids.npz', **{f'{p}_row_ids':base[f'{p}_row_ids'] for p in ('train','val','test')})
@@ -69,6 +74,7 @@ if __name__=='__main__':
     parser.add_argument('--n-splits',type=int,default=5)
     parser.add_argument('--seed',type=int,default=42)
     parser.add_argument('--split-seed',type=int,default=42)
+    parser.add_argument('--test-ratio',type=float,default=.20)
     parser.add_argument('--smote-ratio',type=float,default=.01)
     args=parser.parse_args()
-    run(args.experiment,args.csv,args.output_dir,args.n_splits,args.seed,args.smote_ratio,args.split_seed)
+    run(args.experiment,args.csv,args.output_dir,args.n_splits,args.seed,args.smote_ratio,args.split_seed,args.test_ratio)
