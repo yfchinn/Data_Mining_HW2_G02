@@ -1,0 +1,17 @@
+{
+  "experiment": "exp1",
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "split_seed": 42,
+  "test_ratio": 0.1,
+  "split": "72/18/10 stratified folds",
+  "class_weight": "balanced",
+  "C": 1,
+  "smote_ratio": 0.01,
+  "evaluation": "validation only",
+  "stage": "post-test exploratory; validation populations change; not an independent confirmation",
+  "status": "complete"
+}

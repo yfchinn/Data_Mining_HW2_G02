@@ -193,6 +193,22 @@ uv run --frozen python run_if_contamination.py --experiment exp1
 僅評估 validation，結果存於 `outputs/IF_contamination/<experiment>/`。
 實際污染百分比由資料計算，C4 也只有約 0.17–0.21%，不是 10%。
 
+## test 10% 的追加探索
+
+```powershell
+uv run --frozen python run_t3_test10.py
+```
+
+T3 P0–P6、三個 seeds，LR 維持 balanced、C=1。exp1 改為 10% stratified holdout，
+其餘 90% 做五 folds（約 72/18/10）；exp2 改為 chronological 70/20/10。
+採樣／模型 seeds 為 42/43/44，split seed 固定 42。僅評估 validation，
+新模型與結果存於 `outputs/T3_test10/`、results 的 t3_test10 檔案。
+validation 的樣本也會改變，且部分資料先前已參與原始 test 評估，
+因此此追加探索不能視為獨立驗證，分數差異也不能單獨歸因於訓練筆數增加。
+原始 20% test 的正式結果保留。
+
+完整比較見 `results/T3_TEST10.md`。
+
 ## 正式 test 評估
 
 正式結果見 `results/FINAL_TEST.md`。`evaluate_final_test.py` 載入已保存的 P0
