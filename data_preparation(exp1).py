@@ -109,18 +109,23 @@ def make_stratified_folds(df, test_ratio=0.20, n_splits=5,
 # 3. Train-only RobustScaler
 # ==========================================================
 
-def scale_features(train_df, val_df, test_df):
+def scale_features(train_df, val_df, test_df, fit_normal_only=False):
 
     scale_cols = ["Time", "Amount"]
 
     scaler = RobustScaler()
 
     # Fit using Training Set only.
-    scaler.fit(train_df[scale_cols])
+    fit_frame = train_df.loc[train_df["Class"].eq(0)] if fit_normal_only else train_df
+    if fit_frame.empty:
+        raise ValueError("No training rows available for scaler fitting.")
+    scaler.fit(fit_frame[scale_cols])
 
     result = {
         "scaler": scaler,
-        "feature_columns": FEATURES.copy()
+        "feature_columns": FEATURES.copy(),
+        "metadata": {"scaler_population": "normal_train" if fit_normal_only else "all_train",
+                     "scaler_fit_rows": len(fit_frame)}
     }
 
     for name, frame in [
@@ -153,14 +158,14 @@ def scale_features(train_df, val_df, test_df):
 # ==========================================================
 
 def prepare_data_folds(csv_path="data/creditcard.csv", test_ratio=0.20,
-                       n_splits=5, random_state=42):
+                       n_splits=5, random_state=42, fit_normal_only=False):
     """Yield (fold_index, data), with a scaler fitted only on fold train."""
     df = load_data(csv_path)
     for fold, train_df, val_df, test_df in make_stratified_folds(
         df, test_ratio=test_ratio, n_splits=n_splits,
         random_state=random_state
     ):
-        data = scale_features(train_df, val_df, test_df)
+        data = scale_features(train_df, val_df, test_df, fit_normal_only=fit_normal_only)
         train_ids = set(data["train_row_ids"])
         val_ids = set(data["val_row_ids"])
         test_ids = set(data["test_row_ids"])
@@ -168,6 +173,7 @@ def prepare_data_folds(csv_path="data/creditcard.csv", test_ratio=0.20,
         assert train_ids.isdisjoint(test_ids)
         assert val_ids.isdisjoint(test_ids)
         data["metadata"] = {
+            **data["metadata"],
             "split": "stratified_5fold_with_holdout_test",
             "fold": fold, "n_splits": n_splits,
             "scaling": "train_fold_only_RobustScaler",
@@ -177,13 +183,13 @@ def prepare_data_folds(csv_path="data/creditcard.csv", test_ratio=0.20,
 
 
 def prepare_data(csv_path="data/creditcard.csv", fold_index=0,
-                 test_ratio=0.20, n_splits=5, random_state=42):
+                 test_ratio=0.20, n_splits=5, random_state=42, fit_normal_only=False):
     """Convenience: return one fold. For evaluation, use ALL folds."""
     if not 0 <= fold_index < n_splits:
         raise ValueError("fold_index out of range")
     for fold, data in prepare_data_folds(
         csv_path, test_ratio=test_ratio, n_splits=n_splits,
-        random_state=random_state
+        random_state=random_state, fit_normal_only=fit_normal_only
     ):
         if fold == fold_index:
             return data
@@ -737,6 +743,7 @@ def prepare_sampling_data(
 
     # Validation and Test remain unchanged.
     return {
+        **data,
         "X_train": X,
         "y_train": y,
         "train_row_ids": ids,
@@ -750,6 +757,7 @@ def prepare_sampling_data(
         "scaler": data["scaler"],
 
         "metadata": {
+            **data["metadata"],
             "sampling": sampling,
             "sampling_ratio": sampling_ratio,
             "outlier_removal": outlier_removal,
@@ -766,7 +774,7 @@ def prepare_sampling_data(
 
 def prepare_contamination_data(
     data,
-    fraud_counts=(0, 30, 90, 180, 360),
+    fraud_counts=None,
     random_state=42
 ):
     X_train = data["X_train"]
@@ -777,11 +785,14 @@ def prepare_contamination_data(
     normal_positions = np.flatnonzero(labels == 0)
     fraud_positions = np.flatnonzero(labels == 1)
 
-    counts = tuple(fraud_counts)
+    if fraud_counts is None:
+        limit = min(360, len(fraud_positions))
+        counts = tuple(int(limit * fraction) for fraction in (0, 1/12, 1/4, 1/2, 1))
+    else:
+        counts = tuple(fraud_counts)
 
     if (
-        len(set(counts)) != len(counts)
-        or any(
+        any(
             c < 0 or c > len(fraud_positions)
             for c in counts
         )
@@ -809,6 +820,7 @@ def prepare_contamination_data(
         total = len(selected)
 
         experiments[f"C{i}"] = {
+            **data,
             "X_train": (
                 X_train.iloc[selected]
                 .reset_index(drop=True)
@@ -827,7 +839,8 @@ def prepare_contamination_data(
             "y_test": data["y_test"],
 
             "metadata": {
-                "experiment": f"C{i}",
+                **data["metadata"],
+                "mode": f"C{i}",
                 "normal_count": len(normal_positions),
                 "fraud_count": fraud_count,
                 "total_count": total,

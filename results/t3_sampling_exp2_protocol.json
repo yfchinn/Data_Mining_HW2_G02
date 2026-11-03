@@ -1,0 +1,17 @@
+{
+  "experiment": "exp2",
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "split_seed": 42,
+  "folds": 1,
+  "smote_ratio": 0.01,
+  "C": 1,
+  "class_weight": "balanced",
+  "evaluation": "validation only",
+  "status": "complete",
+  "artifacts": "seed 42 in fold_*; seeds 43/44 in seed_<n>/fold_*",
+  "summary": "exp1: seed-average within folds then cross-fold std; exp2: cross-seed std"
+}

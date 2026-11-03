@@ -1,0 +1,22 @@
+[project]
+name = "data-mining-hw2-g02"
+version = "0.1.0"
+description = "Shared preprocessing and anomaly detection experiments for DM HW2"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "numpy>=1.26,<2",
+    "pandas>=2.2,<3",
+    "scikit-learn>=1.5,<1.6",
+    "imbalanced-learn>=0.13,<0.14",
+    "scikit-learn-extra==0.3.0",
+    "matplotlib>=3.9,<4",
+    "seaborn>=0.13,<0.14",
+    "scipy>=1.13,<2",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
