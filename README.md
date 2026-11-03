@@ -1,5 +1,13 @@
 # Data_Mining_HW2_G02
 
+## 新版 Exp1：預先採樣 P1–P4 的三個 tiers
+
+`uv run --frozen python run_new_exp1_tiers.py` 直接使用
+`data_preparation_exp1_updated_v2.py` 的 outer 60/20/20 接口，seed42，
+對八組 P1–P4 模式執行三個 tiers 的 train/validation/test；不含 inner CV。
+結果見 `results/NEW_EXP1_TIERS.md`，模型與逐筆預測存於
+`outputs/new_exp1_tiers/seed_42/`。這是獨立探索協定，原正式 test 結果保留。
+
 ## 環境（uv）
 
 專案使用 Python 3.11，依賴由 `pyproject.toml` 與 `uv.lock` 管理。
