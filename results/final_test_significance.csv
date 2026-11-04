@@ -1,0 +1,3 @@
+experiment,metric,comparison,observed_gap,ci_low,ci_high,significant_at_05,bootstrap_repeats,bootstrap_seed,method,limitation
+exp1,mean_per_run_average_precision,IF minus LR,-0.1314254966506917,-0.18541318541240026,-0.0751784393939564,True,1000,20261102,paired class-stratified transaction bootstrap; percentile 95% CI,conditional on trained models and observed class counts; assumes independent transactions; no card IDs for clustered bootstrap
+exp2,mean_per_run_average_precision,IF minus LR,-0.28369481418791925,-0.3598592011437118,-0.20459622976185704,True,1000,20261102,paired class-stratified transaction bootstrap; percentile 95% CI,conditional on trained models and observed class counts; assumes independent transactions; no card IDs for clustered bootstrap

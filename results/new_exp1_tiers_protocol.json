@@ -1,0 +1,420 @@
+{
+  "seed": 42,
+  "scope": "outer 60/20/20; no inner CV; exploratory pre-split sampling",
+  "source": "data_preparation_exp1_updated_v2.get_prepared_data",
+  "modes": [
+    "P1-1",
+    "P1-5",
+    "P1-10",
+    "P2-1",
+    "P2-5",
+    "P2-10",
+    "P3-10",
+    "P4-10"
+  ],
+  "thresholds": "T1 fixed 3; T2/T3 validation best F1, frozen before test",
+  "limitation": "different mode test populations; IQR pre-split; cannot interpret as common-test benchmark",
+  "models": {
+    "P1-1": {
+      "T1": {
+        "parameters": {
+          "feature": "V14",
+          "threshold": 3.0
+        },
+        "threshold": 3.0,
+        "fit_rows": 295,
+        "fit_frauds": 0,
+        "training_seconds": 0.0009470998775213957,
+        "preparation_seconds": 1.1917401000391692,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T2": {
+        "parameters": {
+          "features": [
+            "V14",
+            "V10",
+            "V12",
+            "V4",
+            "V11",
+            "V17"
+          ],
+          "max_samples": 256,
+          "n_estimators": 200,
+          "n_jobs": 1,
+          "random_state": 42
+        },
+        "threshold": 0.5788335910189262,
+        "fit_rows": 295,
+        "fit_frauds": 0,
+        "training_seconds": 0.15743689984083176,
+        "preparation_seconds": 1.1917401000391692,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T3": {
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced",
+          "max_iter": 2000,
+          "random_state": 42
+        },
+        "threshold": 0.6638486243533155,
+        "fit_rows": 590,
+        "fit_frauds": 295,
+        "training_seconds": 0.016016399953514338,
+        "preparation_seconds": 1.1917401000391692,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      }
+    },
+    "P1-5": {
+      "T1": {
+        "parameters": {
+          "feature": "V14",
+          "threshold": 3.0
+        },
+        "threshold": 3.0,
+        "fit_rows": 1476,
+        "fit_frauds": 0,
+        "training_seconds": 0.0010991999879479408,
+        "preparation_seconds": 1.2645538998767734,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T2": {
+        "parameters": {
+          "features": [
+            "V14",
+            "V10",
+            "V12",
+            "V4",
+            "V11",
+            "V17"
+          ],
+          "max_samples": 256,
+          "n_estimators": 200,
+          "n_jobs": 1,
+          "random_state": 42
+        },
+        "threshold": 0.671292847075489,
+        "fit_rows": 1476,
+        "fit_frauds": 0,
+        "training_seconds": 0.1478359999600798,
+        "preparation_seconds": 1.2645538998767734,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T3": {
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced",
+          "max_iter": 2000,
+          "random_state": 42
+        },
+        "threshold": 0.8274192733303701,
+        "fit_rows": 1771,
+        "fit_frauds": 295,
+        "training_seconds": 0.02034560008905828,
+        "preparation_seconds": 1.2645538998767734,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      }
+    },
+    "P1-10": {
+      "T1": {
+        "parameters": {
+          "feature": "V14",
+          "threshold": 3.0
+        },
+        "threshold": 3.0,
+        "fit_rows": 2952,
+        "fit_frauds": 0,
+        "training_seconds": 0.0010770999360829592,
+        "preparation_seconds": 2.03238320001401,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T2": {
+        "parameters": {
+          "features": [
+            "V14",
+            "V10",
+            "V12",
+            "V4",
+            "V11",
+            "V17"
+          ],
+          "max_samples": 256,
+          "n_estimators": 200,
+          "n_jobs": 1,
+          "random_state": 42
+        },
+        "threshold": 0.6390989158535395,
+        "fit_rows": 2952,
+        "fit_frauds": 0,
+        "training_seconds": 0.2802210000809282,
+        "preparation_seconds": 2.03238320001401,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T3": {
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced",
+          "max_iter": 2000,
+          "random_state": 42
+        },
+        "threshold": 0.9047429133252184,
+        "fit_rows": 3247,
+        "fit_frauds": 295,
+        "training_seconds": 0.03228829987347126,
+        "preparation_seconds": 2.03238320001401,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      }
+    },
+    "P2-1": {
+      "T1": {
+        "parameters": {
+          "feature": "V14",
+          "threshold": 3.0
+        },
+        "threshold": 3.0,
+        "fit_rows": 295,
+        "fit_frauds": 0,
+        "training_seconds": 0.0009528000373393297,
+        "preparation_seconds": 1.5428273000288755,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T2": {
+        "parameters": {
+          "features": [
+            "V14",
+            "V10",
+            "V12",
+            "V4",
+            "V11",
+            "V17"
+          ],
+          "max_samples": 256,
+          "n_estimators": 200,
+          "n_jobs": 1,
+          "random_state": 42
+        },
+        "threshold": 0.576488086414796,
+        "fit_rows": 295,
+        "fit_frauds": 0,
+        "training_seconds": 0.16729229991324246,
+        "preparation_seconds": 1.5428273000288755,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T3": {
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced",
+          "max_iter": 2000,
+          "random_state": 42
+        },
+        "threshold": 0.8939758198232041,
+        "fit_rows": 590,
+        "fit_frauds": 295,
+        "training_seconds": 0.015273800119757652,
+        "preparation_seconds": 1.5428273000288755,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      }
+    },
+    "P2-5": {
+      "T1": {
+        "parameters": {
+          "feature": "V14",
+          "threshold": 3.0
+        },
+        "threshold": 3.0,
+        "fit_rows": 1476,
+        "fit_frauds": 0,
+        "training_seconds": 0.0016956001054495573,
+        "preparation_seconds": 1.3289940999820828,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T2": {
+        "parameters": {
+          "features": [
+            "V14",
+            "V10",
+            "V12",
+            "V4",
+            "V11",
+            "V17"
+          ],
+          "max_samples": 256,
+          "n_estimators": 200,
+          "n_jobs": 1,
+          "random_state": 42
+        },
+        "threshold": 0.5824216948749624,
+        "fit_rows": 1476,
+        "fit_frauds": 0,
+        "training_seconds": 0.1898356000892818,
+        "preparation_seconds": 1.3289940999820828,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T3": {
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced",
+          "max_iter": 2000,
+          "random_state": 42
+        },
+        "threshold": 0.6880442169753308,
+        "fit_rows": 1771,
+        "fit_frauds": 295,
+        "training_seconds": 0.03881180007010698,
+        "preparation_seconds": 1.3289940999820828,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      }
+    },
+    "P2-10": {
+      "T1": {
+        "parameters": {
+          "feature": "V14",
+          "threshold": 3.0
+        },
+        "threshold": 3.0,
+        "fit_rows": 2952,
+        "fit_frauds": 0,
+        "training_seconds": 0.0011865999549627304,
+        "preparation_seconds": 1.2782846998889,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T2": {
+        "parameters": {
+          "features": [
+            "V14",
+            "V10",
+            "V12",
+            "V4",
+            "V11",
+            "V17"
+          ],
+          "max_samples": 256,
+          "n_estimators": 200,
+          "n_jobs": 1,
+          "random_state": 42
+        },
+        "threshold": 0.6078326301298456,
+        "fit_rows": 2952,
+        "fit_frauds": 0,
+        "training_seconds": 0.18859790009446442,
+        "preparation_seconds": 1.2782846998889,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T3": {
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced",
+          "max_iter": 2000,
+          "random_state": 42
+        },
+        "threshold": 0.8509144970130152,
+        "fit_rows": 3247,
+        "fit_frauds": 295,
+        "training_seconds": 0.029229599982500076,
+        "preparation_seconds": 1.2782846998889,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      }
+    },
+    "P3-10": {
+      "T1": {
+        "parameters": {
+          "feature": "V14",
+          "threshold": 3.0
+        },
+        "threshold": 3.0,
+        "fit_rows": 1475,
+        "fit_frauds": 0,
+        "training_seconds": 0.0011551000643521547,
+        "preparation_seconds": 1.5228515001945198,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T2": {
+        "parameters": {
+          "features": [
+            "V14",
+            "V10",
+            "V12",
+            "V4",
+            "V11",
+            "V17"
+          ],
+          "max_samples": 256,
+          "n_estimators": 200,
+          "n_jobs": 1,
+          "random_state": 42
+        },
+        "threshold": 0.62940014309292,
+        "fit_rows": 1475,
+        "fit_frauds": 0,
+        "training_seconds": 0.2044456999283284,
+        "preparation_seconds": 1.5228515001945198,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T3": {
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced",
+          "max_iter": 2000,
+          "random_state": 42
+        },
+        "threshold": 0.9286670749038202,
+        "fit_rows": 1770,
+        "fit_frauds": 295,
+        "training_seconds": 0.03615119983442128,
+        "preparation_seconds": 1.5228515001945198,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      }
+    },
+    "P4-10": {
+      "T1": {
+        "parameters": {
+          "feature": "V14",
+          "threshold": 3.0
+        },
+        "threshold": 3.0,
+        "fit_rows": 1475,
+        "fit_frauds": 0,
+        "training_seconds": 0.0012095998972654343,
+        "preparation_seconds": 1.5756554000545293,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T2": {
+        "parameters": {
+          "features": [
+            "V14",
+            "V10",
+            "V12",
+            "V4",
+            "V11",
+            "V17"
+          ],
+          "max_samples": 256,
+          "n_estimators": 200,
+          "n_jobs": 1,
+          "random_state": 42
+        },
+        "threshold": 0.6344966457198363,
+        "fit_rows": 1475,
+        "fit_frauds": 0,
+        "training_seconds": 0.19871849985793233,
+        "preparation_seconds": 1.5756554000545293,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      },
+      "T3": {
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced",
+          "max_iter": 2000,
+          "random_state": 42
+        },
+        "threshold": 0.8953507572748485,
+        "fit_rows": 1770,
+        "fit_frauds": 295,
+        "training_seconds": 0.019356000004336238,
+        "preparation_seconds": 1.5756554000545293,
+        "preprocessing": "provided training-only Time/Amount scaler; T1/T2 use only V features"
+      }
+    }
+  },
+  "status": "complete"
+}

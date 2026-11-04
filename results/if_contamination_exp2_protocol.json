@@ -1,0 +1,25 @@
+{
+  "experiment": "exp2",
+  "features": [
+    "V14",
+    "V10",
+    "V12",
+    "V4",
+    "V11",
+    "V17"
+  ],
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "split_seed": 42,
+  "n_estimators": 200,
+  "max_samples": 256,
+  "scaler": "fit once per fold on original normal training only; reused in all C modes",
+  "normal_population": "all original normal training rows, unchanged across modes",
+  "evaluation": "validation only; threshold maximizes validation F1",
+  "contamination": "C0-C4 are actual training fraud inclusion, not sklearn contamination parameter",
+  "limitation": "sensitivity study deliberately fits polluted training data; main comparison stays normal-only",
+  "status": "complete"
+}

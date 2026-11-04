@@ -1,0 +1,17 @@
+{
+  "mode": "P0",
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "split_seed": 42,
+  "T1": "V14 two-sided 3sigma; threshold=3",
+  "T2": "normal-only IF; V14,V10,V12,V4,V11,V17; 200 trees; 256 samples/tree",
+  "T3": "all-feature LR; C=1; balanced; no resampling (P0 chosen for AP)",
+  "thresholds": "use saved validation-selected thresholds without changes",
+  "data_sha256": "76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89",
+  "bootstrap_repeats": 1000,
+  "status": "complete",
+  "timing": "single batched inference; training times reused from saved training runs; excludes disk IO; latency is batch amortized"
+}
