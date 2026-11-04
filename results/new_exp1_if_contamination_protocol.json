@@ -1,0 +1,28 @@
+{
+  "source": "data_preparation_exp1_updated_v2",
+  "mode": "P1-10",
+  "split_seed": 42,
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "features": [
+    "V14",
+    "V10",
+    "V12",
+    "V4",
+    "V11",
+    "V17"
+  ],
+  "n_estimators": 200,
+  "max_samples": 256,
+  "sklearn_contamination": "auto",
+  "fraud_counts": "floor(min(360, available training fraud) * [0,1/12,1/4,1/2,1])",
+  "fit": "all selected normal and fraud rows; normal population fixed",
+  "order": "normal then fraud, each sorted by original row ID",
+  "threshold": "validation best F1 per model, frozen for train/test",
+  "preprocessing": "reuse P1-10 training-only scaler; selected V features unchanged",
+  "limitation": "exploratory pre-split undersampling; test prevalence differs from original benchmark",
+  "status": "complete"
+}

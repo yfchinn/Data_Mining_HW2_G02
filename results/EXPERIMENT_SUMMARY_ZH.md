@@ -1,7 +1,8 @@
 # 信用卡異常偵測：實驗結果總整理
 
-更新日期：2026-11-03。這份文件彙整原始 **test 20%** 的正式實驗，方便組員寫報告與製作簡報。
-**不包含 test 10% 的未提交探索**，也不包含已還原的「先平衡資料再切分」及關閉 class weight 的分支。
+更新日期：2026-11-04。這份文件彙整原始 **test 20%** 的正式實驗，以及新版 Exp1 先採樣再切分的追加探索，方便組員寫報告與製作簡報。
+第 1–8 節為原始正式實驗及其 ablations；第 9 節使用不同資料分布，不能與正式 test 直接比較。
+不包含已還原的「先平衡資料再切分」及關閉 class weight 的分支。
 
 ## 1. 先看結論
 
@@ -9,7 +10,9 @@
 - 六特徵 IF 的決策 F1 優於固定 V14 3σ，但 AP 沒有全面優於 3σ。AP 衡量排序，F1 衡量指定門檻的決策。
 - T3 的 SMOTE（P5）在 validation 上維持接近 P0 的 AP，F1 稍高；差距未證明具統計顯著性。正式 test 的 T3 保留 P0。
 - 強烈 1:1 undersampling 多數降低 validation 表現；採樣 seed 對部分設定有很大影響。
-- IF 在很低的訓練污染量下 AP 反而上升；這是敏感度實驗結果，主比較仍採 normal-only IF。
+- 原始切分的 IF 在很低的訓練污染量下 AP 反而上升；這是敏感度實驗結果，主比較仍採 normal-only IF。
+- 新版 Exp1 八組模式內，LR 的 test AP 都最高；其 test 已先 undersampling，不能將較高分數解讀為比正式實驗更好。
+- 新 P1-10 的 T2 污染實驗中，C1/C2 接近 C0；C4 test AP 從 0.9163 降至 0.9034，尚未做顯著性分析。
 
 ## 2. 資料與切分
 
@@ -214,7 +217,167 @@ C0 為無污染主設定；C1–C4 僅為敏感度研究，不替換正式主比
 最高實際污染率僅約 0.17%／0.21%，不是 1%／5%／10%。小量污染 AP 上升，不能推論更高污染也有益。
 加入 fraud 也增加 training 筆數並改變各樹抽樣；此設計測的是「固定正常資料、額外加入 fraud」的效果，未單獨隔離 training size 的影響。
 
-## 9. 已完成範圍與交接注意事項
+## 9. 新版 Exp1：P1–P4 三個 tiers 與 T2 污染實驗（追加探索）
+
+日期：2026-11-03。直接使用組員 `data_preparation_exp1_updated_v2.get_prepared_data`，seed=42、fold_index=None。
+**P1–P4 三個 tiers 比較使用外層 60/20/20 的單次完整 train/validation/test，不是內層五折 CV，也不是三個 seeds 的平均。**
+另於 2026-11-04 追加 T2 P1-10 的 C0–C4 污染實驗，使用 seeds 42／43／44，結果整合於本文後段。
+8 組模式 × 3 模型＝24 個已訓練模型，72 列 partition 指標。
+
+### 模型設定
+
+- T1：固定 V14、雙側 3σ，僅 normal training 估計 μ/σ，固定門檻 3。
+- T2：固定 V14/V10/V12/V4/V11/V17，normal-only IF，200 trees、max_samples=256、seed42。
+- T3：全 30 特徵 LR，C=1、L2、balanced、lbfgs、max_iter=2000，使用兩類 training。
+- T2/T3 使用 validation 最大 F1 決定門檻，凍結後評估 test；沒有依 test 更改模型。
+- 所有模型直接使用接口提供的資料；Time/Amount scaler fit 當次 training，兩個 normal-only 模型不使用 Time/Amount，故這兩欄的 scaler 不影響其分數。
+
+### 模式與切分
+
+P1：切分前 random undersampling 到 1/5/10:1。P2：切分前正常資料 V10 IQR 過濾，再做同樣 undersampling。
+P3-10：切分前 random 10:1，切分後 training 用 K-Medoids 減到約 5:1。P4-10：先加 IQR，再做同樣 P3 流程。
+P3/P4 目前只有 -10 兩組。K-Medoids 為既有 candidate-based 方法。
+
+| 模式 | Train 正常 / fraud | Validation 正常 / fraud | Test 正常 / fraud |
+| --- | --- | --- | --- |
+| P1-1 | 295 / 295 | 98 / 99 | 99 / 98 |
+| P1-5 | 1476 / 295 | 492 / 98 | 492 / 99 |
+| P1-10 | 2952 / 295 | 984 / 98 | 984 / 99 |
+| P2-1 | 295 / 295 | 98 / 99 | 99 / 98 |
+| P2-5 | 1476 / 295 | 492 / 98 | 492 / 99 |
+| P2-10 | 2952 / 295 | 984 / 98 | 984 / 99 |
+| P3-10 | 1475 / 295 | 984 / 98 | 984 / 99 |
+| P4-10 | 1475 / 295 | 984 / 98 | 984 / 99 |
+
+### 結果：AP / F1
+
+每格為 AP / F1。AP 為 Average Precision，非 accuracy；完整 ROC-AUC、precision/recall、FPR、accuracy、混淆矩陣與時間見 CSV。
+
+#### Test
+
+| 模式 | T1：AP / F1 | T2：AP / F1 | T3：AP / F1 |
+| --- | --- | --- | --- |
+| P1-1 | 0.9502 / 0.8800 | 0.9621 / 0.9011 | 0.9770 / 0.9130 |
+| P1-5 | 0.9099 / 0.8601 | 0.9095 / 0.8729 | 0.9384 / 0.9271 |
+| P1-10 | 0.8873 / 0.8342 | 0.9145 / 0.8889 | 0.9404 / 0.9032 |
+| P2-1 | 0.9507 / 0.8876 | 0.9676 / 0.9130 | 0.9784 / 0.9061 |
+| P2-5 | 0.9342 / 0.8973 | 0.9280 / 0.8557 | 0.9492 / 0.9175 |
+| P2-10 | 0.9102 / 0.8691 | 0.9310 / 0.8854 | 0.9398 / 0.9158 |
+| P3-10 | 0.8868 / 0.8394 | 0.9135 / 0.8783 | 0.9397 / 0.9071 |
+| P4-10 | 0.9099 / 0.8830 | 0.9304 / 0.9130 | 0.9375 / 0.9032 |
+
+#### Validation
+
+| 模式 | T1：AP / F1 | T2：AP / F1 | T3：AP / F1 |
+| --- | --- | --- | --- |
+| P1-1 | 0.9687 / 0.9255 | 0.9839 / 0.9436 | 0.9826 / 0.9543 |
+| P1-5 | 0.9222 / 0.8783 | 0.9221 / 0.8901 | 0.9666 / 0.9189 |
+| P1-10 | 0.8229 / 0.8085 | 0.8628 / 0.8587 | 0.8969 / 0.8796 |
+| P2-1 | 0.9698 / 0.9355 | 0.9816 / 0.9479 | 0.9858 / 0.9583 |
+| P2-5 | 0.9322 / 0.9071 | 0.9400 / 0.9062 | 0.9699 / 0.9305 |
+| P2-10 | 0.8501 / 0.8280 | 0.8873 / 0.8723 | 0.9163 / 0.8947 |
+| P3-10 | 0.8224 / 0.8108 | 0.8642 / 0.8541 | 0.9046 / 0.8840 |
+| P4-10 | 0.8496 / 0.8370 | 0.8891 / 0.8778 | 0.9189 / 0.8936 |
+
+#### Train
+
+| 模式 | T1：AP / F1 | T2：AP / F1 | T3：AP / F1 |
+| --- | --- | --- | --- |
+| P1-1 | 0.9708 / 0.9051 | 0.9745 / 0.9220 | 0.9938 / 0.9577 |
+| P1-5 | 0.9115 / 0.8774 | 0.9336 / 0.8950 | 0.9728 / 0.9261 |
+| P1-10 | 0.9002 / 0.8456 | 0.9100 / 0.8835 | 0.9644 / 0.9171 |
+| P2-1 | 0.9747 / 0.9094 | 0.9695 / 0.9187 | 0.9942 / 0.9520 |
+| P2-5 | 0.9170 / 0.8826 | 0.9339 / 0.8893 | 0.9724 / 0.9303 |
+| P2-10 | 0.9129 / 0.8567 | 0.9252 / 0.8816 | 0.9660 / 0.9151 |
+| P3-10 | 0.9199 / 0.8803 | 0.9212 / 0.8901 | 0.9733 / 0.9256 |
+| P4-10 | 0.9304 / 0.8912 | 0.9387 / 0.9137 | 0.9758 / 0.9321 |
+
+### 如何解讀
+
+- LR 的 test AP 在八組內都最高；F1 多數也較高，但 P2-1、P4-10 是 IF 稍高。這是單次觀察，未做顯著性推論。
+- 同一模式的三個 tier 使用相同 validation/test IDs；P1-10 與 P3-10、P2-10 與 P4-10 的 outer validation/test IDs 也已確認一致。
+- 不同採樣比例的 test 族群與 fraud 比例不同，不應將跨比例的 AP/F1 差異直接視為方法改善。
+- P2/P4 的 IQR 在切分前估計並過濾資料，不屬於完全只看 training 的預處理；可能影響評估分布。
+- Train 指標是在該模式最終完整 training（兩類）上計算，T1/T2 實際 fit 仍只用正常列。
+- Validation F1 同時用於挑門檻，可能偏樂觀；test 已按凍結門檻評估。
+- 原本 FINAL_TEST 的固定 raw split 比較保持不變，這組屬於另一個探索協定。
+
+### 檔案
+
+- 程式：`run_new_exp1_tiers.py`；執行 `uv run --frozen python run_new_exp1_tiers.py`。
+- 完整指標：[new_exp1_tiers_metrics.csv](new_exp1_tiers_metrics.csv)。
+- 切分筆數：[new_exp1_tiers_split_counts.csv](new_exp1_tiers_split_counts.csv)。
+- 設定：[new_exp1_tiers_protocol.json](new_exp1_tiers_protocol.json)。
+- 模型、scaler、split IDs 與逐筆預測：`outputs/new_exp1_tiers/seed_42/<mode>/`；程式拒絕覆寫同名輸出目錄。
+
+### T2：P1-10 下的 C0–C4 contamination ablation
+
+固定 `data_preparation_exp1_updated_v2.py` 的 P1-10 outer 60/20/20、split seed 42；不使用 inner CV。模型／污染子集 seeds 為 42、43、44，共 15 次訓練。
+
+#### 設定
+
+- 六特徵 V14、V10、V12、V4、V11、V17；200 trees、max_samples=256、n_jobs=1。
+- 固定 2,952 筆 normal 訓練資料，C0–C4 加入 0、24、73、147、295 筆 fraud；各 seed 的 fraud 子集巢狀包含。
+- 直接以 sklearn IF 訓練所有選入列，刻意保留污染 fraud。sklearn contamination=auto；此參數不等於實際污染比例。
+- train 評估使用完整固定 P1-10 train（2,952 normal / 295 fraud），不是各 C 模式的 fit 子集。
+- validation 固定 984 normal / 98 fraud；test 固定 984 normal / 99 fraud。
+- 沿用 P1-10 的 train-only Time/Amount scaler；IF 所選六個 V 特徵不受該 scaler 影響。
+- 列排序統一 normal 後 fraud，各自依原始 ID；因此 C0 與先前 runner 的 P1-10 T2 不保證完全相同，差異以本次 C0 為準。
+- 各模型依 validation 最大 F1 選門檻，凍結後評估 train/test。AP 為 sklearn average precision。
+
+#### 三 seeds 結果
+
+數值為跨 seeds mean ± sample std；非信賴區間。
+
+##### train
+
+| 模式 | 訓練 fraud | 實際污染率 | AP | F1 | AP 相對 C0 |
+|---|---:|---:|---:|---:|---:|
+| C0 | 0 | 0.000% | 0.9139 ± 0.0061 | 0.8838 ± 0.0131 | +0.0000 |
+| C1 | 24 | 0.806% | 0.9171 ± 0.0014 | 0.8840 ± 0.0057 | +0.0032 |
+| C2 | 73 | 2.413% | 0.9140 ± 0.0007 | 0.8766 ± 0.0029 | +0.0001 |
+| C3 | 147 | 4.743% | 0.9085 ± 0.0005 | 0.8714 ± 0.0034 | -0.0054 |
+| C4 | 295 | 9.085% | 0.8884 ± 0.0030 | 0.8519 ± 0.0033 | -0.0255 |
+
+##### val
+
+| 模式 | 訓練 fraud | 實際污染率 | AP | F1 | AP 相對 C0 |
+|---|---:|---:|---:|---:|---:|
+| C0 | 0 | 0.000% | 0.8666 ± 0.0011 | 0.8572 ± 0.0062 | +0.0000 |
+| C1 | 24 | 0.806% | 0.8703 ± 0.0040 | 0.8576 ± 0.0033 | +0.0038 |
+| C2 | 73 | 2.413% | 0.8665 ± 0.0008 | 0.8556 ± 0.0027 | -0.0001 |
+| C3 | 147 | 4.743% | 0.8625 ± 0.0009 | 0.8498 ± 0.0024 | -0.0040 |
+| C4 | 295 | 9.085% | 0.8489 ± 0.0056 | 0.8324 ± 0.0045 | -0.0177 |
+
+##### test
+
+| 模式 | 訓練 fraud | 實際污染率 | AP | F1 | AP 相對 C0 |
+|---|---:|---:|---:|---:|---:|
+| C0 | 0 | 0.000% | 0.9163 ± 0.0021 | 0.8913 ± 0.0071 | +0.0000 |
+| C1 | 24 | 0.806% | 0.9173 ± 0.0014 | 0.8957 ± 0.0030 | +0.0010 |
+| C2 | 73 | 2.413% | 0.9167 ± 0.0029 | 0.8913 ± 0.0106 | +0.0005 |
+| C3 | 147 | 4.743% | 0.9118 ± 0.0012 | 0.8945 ± 0.0069 | -0.0044 |
+| C4 | 295 | 9.085% | 0.9034 ± 0.0039 | 0.8806 ± 0.0061 | -0.0128 |
+
+#### 解讀與限制
+
+Test C1/C2 的 AP 接近 C0；C3/C4 較低，C4 平均 AP 減少 0.0128。尚未執行顯著性分析，不能把微小差異稱為顯著提升或下降。
+
+這組 P1-10 的實際污染率最高約 9.09%，與原始資料 ablation 的低污染比例不同，不能只按 C 編號直接對照。污染時正常列固定、總訓練筆數隨 fraud 增加，因此也包含訓練總量改變的效果。
+
+此 test 來自先對全資料 undersampling 再切分，fraud 比例約 9.14%，不是原始交易分布。僅在本次固定 test 內比較各 C 模式；不可據此宣稱比原始正式 test 表現更佳。本 test 先前已評估過，屬追加探索，不是新的獨立確認。
+
+#### 重現與檔案
+
+```powershell
+uv run --frozen python run_new_exp1_if_contamination.py
+```
+
+預設輸出目錄已存在時會拒絕覆寫。模型、fit row IDs、固定 split IDs、各分區 predictions 在 `outputs/new_exp1_if_contamination/`。可分享的 metrics、summary、protocol、split counts 在本目錄 `new_exp1_if_contamination_*`。
+
+驗證：整合測試通過，檢查 fraud 真正進入 fit、子集巢狀包含、test IDs/labels 固定及門檻跨分區固定。
+
+## 10. 已完成範圍與交接注意事項
 
 - 已完成兩套正式切分、三個 tiers、多 seeds、T3 採樣、IF ablations、主比較 test、時間成本與顯著性分析。
 - 正式 test 使用保存模型與 validation 門檻，沒有依 test 重新訓練或調門檻。
@@ -223,7 +386,7 @@ C0 為無污染主設定；C1–C4 僅為敏感度研究，不替換正式主比
 - 原資料的 PCA 特徵 V1–V28 是資料集已提供的，不是這個專案重新 fit 的 PCA。
 - 補算的 train 指標不改變模型或正式 test 結果。T3 仍使用 balanced；已還原的分支實驗不列入本文件。
 
-## 10. 數據與程式索引
+## 11. 數據與程式索引
 
 | 內容 | 檔案 |
 | --- | --- |
@@ -236,6 +399,9 @@ C0 為無污染主設定；C1–C4 僅為敏感度研究，不替換正式主比
 | 採樣結果 | [T3_SAMPLING.md](T3_SAMPLING.md)、t3_sampling_exp1/exp2_metrics.csv |
 | IF 診斷 | [if_diagnostics_metrics.csv](if_diagnostics_metrics.csv) |
 | IF 污染 | [IF_ABLATIONS.md](IF_ABLATIONS.md)、if_contamination_exp1/exp2_metrics.csv |
+| 新版 Exp1 三 tiers | [new_exp1_tiers_metrics.csv](new_exp1_tiers_metrics.csv)、[new_exp1_tiers_split_counts.csv](new_exp1_tiers_split_counts.csv)、[new_exp1_tiers_protocol.json](new_exp1_tiers_protocol.json) |
+| 新 P1-10 T2 污染 | [new_exp1_if_contamination_metrics.csv](new_exp1_if_contamination_metrics.csv)、[new_exp1_if_contamination_summary.csv](new_exp1_if_contamination_summary.csv)、[new_exp1_if_contamination_protocol.json](new_exp1_if_contamination_protocol.json)、[new_exp1_if_contamination_split_counts.csv](new_exp1_if_contamination_split_counts.csv) |
+| 新版 Exp1 執行程式 | ../run_new_exp1_tiers.py、../run_new_exp1_if_contamination.py |
 | 訓練／正式評估程式 | ../run_experiment.py、../evaluate_final_test.py |
 | 採樣／污染程式 | ../run_t3_sampling.py、../complete_t3_seeds.py、../run_if_contamination.py |
 

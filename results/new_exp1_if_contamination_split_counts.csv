@@ -1,0 +1,4 @@
+partition,normal,fraud
+train,2952,295
+val,984,98
+test,984,99
