@@ -127,14 +127,14 @@ def analyze_feature_separation(df, top_n=6):
 
 
 # ==============================================================================
-# 模組二：Time 與 Amount 的特徵工程與轉換 (Time & Amount Feature Engineering)
+# 模組二（更新版）：Time 與 Amount 轉換前後完全對照圖
 # ==============================================================================
 def engineer_time_and_amount(df):
     """
     1. 將 Time (秒) 轉為 Hour_of_Day (0-23 小時) 週期特徵
-    2. 對 Amount 做 Log1p 與 RobustScaler 轉換，並繪製雙峰/時間分佈圖
+    2. 繪製 Amount 轉換前 (Raw Amount) 與 轉換後 (Log1p Amount) 之對照圖
     """
-    print("\n⏳ [Module 2] Time 與 Amount 特徵工程與分佈檢驗...")
+    print("\n⏳ [Module 2] Time 與 Amount 特徵工程與轉換前後對照檢驗...")
     df_engineered = df.copy()
     
     # 時間特徵：計算交易時間是當天的第幾小時 (0 - 23)
@@ -143,39 +143,46 @@ def engineer_time_and_amount(df):
     # 金額特徵：Log1p 平滑極端偏態
     df_engineered['Amount_Log1p'] = np.log1p(df_engineered['Amount'])
     
-    # 金額特徵：RobustScaler 標準化
-    scaler = RobustScaler()
-    df_engineered['Amount_RobustScaled'] = scaler.fit_transform(df_engineered[['Amount']])
-    
-    # 繪製圖表：交易時間分佈 vs 交易金額分佈
-    fig, axes = plt.subplots(1, 2, figsize=(15, 5))
+    # 繪製 3 欄式畫布
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     
     # 1. 交易小時分佈 (Density)
     sns.kdeplot(data=df_engineered[df_engineered['Class']==0]['Hour_of_Day'], ax=axes[0], 
                 color='dodgerblue', label='Normal (Class 0)', fill=True, alpha=0.3, bw_adjust=0.8)
     sns.kdeplot(data=df_engineered[df_engineered['Class']==1]['Hour_of_Day'], ax=axes[0], 
                 color='crimson', label='Fraud (Class 1)', fill=True, alpha=0.3, bw_adjust=0.8)
-    axes[0].set_title("Transaction Density by Hour of Day", fontsize=14, fontweight='bold')
+    axes[0].set_title("1. Transaction Density by Hour of Day", fontsize=12, fontweight='bold')
     axes[0].set_xlabel("Hour of Day (0-23)")
     axes[0].set_ylabel("Density")
-    axes[0].set_xticks(range(0, 25, 2))
+    axes[0].set_xticks(range(0, 25, 4))
     axes[0].legend()
     
-    # 2. 交易金額 Log1p 分佈
-    sns.kdeplot(data=df_engineered[df_engineered['Class']==0]['Amount_Log1p'], ax=axes[1], 
-                color='dodgerblue', label='Normal (Class 0)', fill=True, alpha=0.3)
-    sns.kdeplot(data=df_engineered[df_engineered['Class']==1]['Amount_Log1p'], ax=axes[1], 
-                color='crimson', label='Fraud (Class 1)', fill=True, alpha=0.3)
-    axes[1].set_title("Transaction Amount Distribution (Log1p Transformed)", fontsize=14, fontweight='bold')
-    axes[1].set_xlabel("Log(Amount + 1)")
+    # 2. 轉換前：原始 Amount 分佈 (展示極端右偏與壓扁效應)
+    # 為了避免 25,000 的極大值把 X 軸拉到無限長，限制顯示至 $1,000 (涵蓋 99% 以上交易)
+    sns.kdeplot(data=df_engineered[df_engineered['Class']==0]['Amount'], ax=axes[1], 
+                color='dodgerblue', label='Normal (Class 0)', fill=True, alpha=0.3, clip=(0, 1000))
+    sns.kdeplot(data=df_engineered[df_engineered['Class']==1]['Amount'], ax=axes[1], 
+                color='crimson', label='Fraud (Class 1)', fill=True, alpha=0.3, clip=(0, 1000))
+    axes[1].set_title("2. Raw Amount Distribution", fontsize=12, fontweight='bold')
+    axes[1].set_xlabel("Raw Amount (Clipped at $1000)")
     axes[1].set_ylabel("Density")
     axes[1].legend()
+    
+    # 3. 轉換後：Log1p Amount 分佈 (展現雙峰結構)
+    sns.kdeplot(data=df_engineered[df_engineered['Class']==0]['Amount_Log1p'], ax=axes[2], 
+                color='dodgerblue', label='Normal (Class 0)', fill=True, alpha=0.3)
+    sns.kdeplot(data=df_engineered[df_engineered['Class']==1]['Amount_Log1p'], ax=axes[2], 
+                color='crimson', label='Fraud (Class 1)', fill=True, alpha=0.3)
+    axes[2].set_title("3. Log1p Amount Distribution (Log Transformed)", fontsize=12, fontweight='bold')
+    axes[2].set_xlabel("Log(Amount + 1)")
+    axes[2].set_ylabel("Density")
+    axes[2].legend()
     
     plt.tight_layout()
     save_path = os.path.join(FIG_DIR, "fig2_time_amount_engineering.png")
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
-    print(f"📸 圖表已存至: {save_path}")
+    print(f"📸 轉換前後對照圖已更新並存至: {save_path}")
     
     return df_engineered
 
