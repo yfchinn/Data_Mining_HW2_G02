@@ -270,7 +270,7 @@ def evaluate_t1_baseline_feasibility(df, top_features):
 if __name__ == "__main__":
     # 1. 載入資料 (請確保目錄下有 creditcard.csv)
     # 下載網址: https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud
-    data_path = "data/creditcard.csv"
+    data_path = "data/processed/train.csv"
     
     if not os.path.exists(data_path):
         print(f"⚠️ 未找到 `{data_path}`，請至 Kaggle 下載 Credit Card Fraud Detection 資料集。")
