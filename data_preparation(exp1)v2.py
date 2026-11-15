@@ -1,11 +1,11 @@
 
-"""Data Mining HW2 - Experiment 1: 60/20/20 split + train-only 5-fold CV.
+"""Data Mining HW2 - Experiment 1: fixed holdouts + train-only 5-fold CV.
 
 Class 0 = Normal
 Class 1 = Fraud
 
 Features:
-- P1-P4: pre-split sampling, stratified 60/20/20, then 5-fold on train only
+- P1-P4: fixed validation/test counts first, train-only preprocessing, then train-only 5-fold CV
 - Train-only RobustScaler for Time and Amount
 - Normal-only IQR removal
 - Random UnderSampling (1:1, 5:1, 10:1)
@@ -596,12 +596,13 @@ def prepare_contamination_data(
 
 
 # ==========================================================
-# 8. New Exp1: sampling before fixed 60/20/20 split (P1-P4)
+# 8. Exp1: fixed holdouts BEFORE training-only sampling (P1-P4)
 # ==========================================================
-# IMPORTANT: This is the user-requested exploratory protocol, NOT a
-# leakage-free/common-test benchmark. IQR and sampling happen pre-split.
-# P5/P6 remain train-only for now; do not compare their test metrics to
-# P1-P4 as though every group used an identical test population.
+# Table 5 counts are exact for the OUTER training set. Validation and test
+# are selected first, never filtered, and are shared by paired P1/P2 modes.
+# Across ratios, the held-out populations differ as specified by Table 5;
+# therefore cross-ratio metrics are NOT common-test comparisons.
+# Within 5-fold CV, IQR/RUS/K-Medoids are refitted on each CV-training fold.
 
 CONFIGS = {
     "P0": ("none", "none", None),
@@ -686,34 +687,86 @@ def _kmedoids_on_frame(frame, seed=RANDOM_STATE):
     return indexed.loc[ids2].reset_index(drop=True), info
 
 
+# Exact outer split sizes requested in Table 5 (Normal, Fraud).
+TABLE5_HOLDOUTS = {
+    1: {"val": (98, 99), "test": (99, 98)},
+    5: {"val": (492, 98), "test": (492, 99)},
+    10: {"val": (984, 98), "test": (984, 99)},
+}
+# Table 5 reports 1,476 rather than 5*295=1,475 for P1-5/P2-5.
+TABLE5_TRAIN_NORMAL = {1: 295, 5: 1476, 10: 2952}
+
+
+def _fixed_table5_split(original, ratio, seed=RANDOM_STATE):
+    """Choose exact untouched holdouts first; retain remaining rows for train.
+
+    P1/P2 at a given ratio (and P3/P4 at ratio 10) use the same
+    held-out row IDs, independently of the preprocessing method.
+    """
+    counts = TABLE5_HOLDOUTS[ratio]
+    normal = original.loc[original["Class"].eq(0)]
+    fraud = original.loc[original["Class"].eq(1)]
+    if len(fraud) != 492:
+        raise ValueError("Exact Table 5 counts require 492 fraud rows.")
+    rng_n = np.random.default_rng(seed)
+    rng_f = np.random.default_rng(seed + 1000)
+    normal_order = rng_n.permutation(normal.index.to_numpy())
+    fraud_order = rng_f.permutation(fraud.index.to_numpy())
+    nv, fv = counts["val"]
+    nt, ft = counts["test"]
+    val_ids = np.r_[normal_order[:nv], fraud_order[:fv]]
+    test_ids = np.r_[normal_order[nv:nv+nt], fraud_order[fv:fv+ft]]
+    held_out = set(val_ids) | set(test_ids)
+    train = original.loc[~original.index.isin(held_out)].copy()
+    val = original.loc[val_ids].copy()
+    test = original.loc[test_ids].copy()
+    assert len(held_out) == len(val) + len(test)
+    assert int(train["Class"].eq(1).sum()) == 295
+    return (x.reset_index(drop=True) for x in (train, val, test))
+
+
 def _make_mode_frames(original, mode, seed=RANDOM_STATE):
-    sampling, outlier, ratio = CONFIGS[mode]
-    removed = 0
+    """Return raw outer train pool and untouched outer validation/test.
+
+    Training preprocessing is intentionally delayed to _prepare_scaled,
+    including for IQR, so no validation/test or CV-val rows are used.
+    """
     if mode.startswith(("P1-", "P2-", "P3-", "P4-")):
-        frame = original.copy()
-        if outlier == "normal_iqr":
-            frame, removed = _iqr_filter_normal(frame)
-        frame = _random_normal_subset(frame, ratio, seed)
-        train, val, test = _split_622(frame, seed)
-        # Do NOT K-Medoids the full train before CV: each fold must select
-        # medoids using only its own CV-training portion.
+        ratio = CONFIGS[mode][2]
+        train, val, test = _fixed_table5_split(original, ratio, seed)
     else:
         train, val, test = _split_622(original, seed)
-        # P5/P6: train-only preparation, kept separate from P1-P4 protocol.
-        if outlier == "normal_iqr":
-            train, removed = _iqr_filter_normal(train)
-        if sampling == "smote":
-            # SMOTE must be done inside CV folds, not before CV splitting.
-            pass
-    return train, val, test, removed
+    return train, val, test, 0
 
 
 def _prepare_scaled(train, val, test, mode, fold=None, seed=RANDOM_STATE):
-    sampling, _, _ = CONFIGS[mode]
+    sampling, outlier, ratio = CONFIGS[mode]
     k_info = None
     smote_info = None
-    if sampling == "kmedoids":
-        train, k_info = _kmedoids_on_frame(train, seed)
+    removed = 0
+    train = train.copy().reset_index(drop=True)
+    if outlier == "normal_iqr":
+        train, removed = _iqr_filter_normal(train)
+    if mode.startswith(("P1-", "P2-", "P3-", "P4-")):
+        if sampling == "random":
+            if fold is None:
+                target = TABLE5_TRAIN_NORMAL[ratio]
+                fraud_count = int(train["Class"].eq(1).sum())
+                if fraud_count != 295:
+                    raise AssertionError("Unexpected outer training fraud count")
+                # Explicit outer count matches the supplied Table 5 exactly.
+                normal = train.loc[train["Class"].eq(0)].sample(
+                    n=target, random_state=seed, replace=False)
+                fraud = train.loc[train["Class"].eq(1)]
+                train = pd.concat([normal, fraud]).sample(
+                    frac=1, random_state=seed).reset_index(drop=True)
+            else:
+                train = _random_normal_subset(train, ratio, seed)
+        elif sampling == "kmedoids":
+            # Stage 1: train-only RUS to 10:1; stage 2: train-only
+            # candidate K-Medoids to 5:1 (1,475/295 in outer train).
+            train = _random_normal_subset(train, 10, seed)
+            train, k_info = _kmedoids_on_frame(train, seed)
     data = scale_features(train, val, test)
     if sampling == "smote":
         X, y, ids, smote_info = smote_oversampling(
@@ -723,35 +776,43 @@ def _prepare_scaled(train, val, test, mode, fold=None, seed=RANDOM_STATE):
     ids = {int(x) for x in data["train_row_ids"] if x is not None}
     assert ids.isdisjoint(set(data["val_row_ids"]))
     assert ids.isdisjoint(set(data["test_row_ids"]))
-    data["metadata"].update(mode=mode, fold=fold, kmedoids=k_info, smote=smote_info,
-                             split="fixed_60_20_20_then_train_5fold")
+    assert set(data["val_row_ids"]).isdisjoint(set(data["test_row_ids"]))
+    data["metadata"].update(
+        mode=mode, fold=fold, kmedoids=k_info, smote=smote_info,
+        iqr_removed=removed,
+        split="table5_fixed_holdouts_then_train_only_preprocessing"
+        if mode.startswith(("P1-", "P2-", "P3-", "P4-"))
+        else "original_split_then_train_only_preprocessing")
     return data
 
 
 def get_prepared_data(mode="P0", fold_index=None, csv_path=None,
                       n_splits=5, random_state=RANDOM_STATE, **kwargs):
-    """Return outer train/val/test when fold_index=None; else CV train/val
-    and the untouched outer test. fold_index is zero-based (0..4).
+    """Return outer train/val/test, or CV train/val plus untouched outer test.
+
+    fold_index is zero-based. For folds, outer validation is not used;
+    preprocessing is fitted only on the corresponding CV training portion.
     """
     if mode not in CONFIGS:
         raise ValueError(f"Unknown mode {mode!r}")
     if csv_path is None:
         csv_path = Path(__file__).resolve().parent / "data" / "creditcard.csv"
     original = load_data(csv_path)
-    train, val, test, removed = _make_mode_frames(original, mode, random_state)
+    train, val, test, _ = _make_mode_frames(original, mode, random_state)
     if fold_index is None:
         data = _prepare_scaled(train, val, test, mode, seed=random_state)
-        data["metadata"].update(iqr_removed=removed, scope="outer_60_20_20")
+        data["metadata"].update(scope="outer_split")
         return data
     if not 0 <= fold_index < n_splits:
         raise ValueError("fold_index out of range")
-    cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    cv = StratifiedKFold(n_splits=n_splits, shuffle=True,
+                         random_state=random_state)
     for i, (tr, va) in enumerate(cv.split(train[FEATURES], train["Class"])):
         if i == fold_index:
             data = _prepare_scaled(train.iloc[tr].copy(), train.iloc[va].copy(),
                                    test, mode, fold=i + 1, seed=random_state + i)
-            data["metadata"].update(iqr_removed=removed, scope="cv_fold",
-                                    outer_val_row_ids=val["row_id"].to_numpy())
+            data["metadata"].update(
+                scope="cv_fold", outer_val_row_ids=val["row_id"].to_numpy())
             return data
     raise RuntimeError("Fold not found")
 
@@ -783,11 +844,20 @@ def run_sampling_experiments(csv_path, selected_groups=None, n_splits=5,
         for mode in modes:
             print(f"\n--- {mode} ---", flush=True)
             train, val, test, removed = _make_mode_frames(original, mode)
-            print(f"IQR removed (Normal only): {removed}")
-            for label, part in (("Train before KMedoids", train), ("Validation", val), ("Test", test)):
-                print(f"{label:23s} | {_counts(part)}")
+            for label, part in (("Train pool (before prep)", train),
+                                ("Validation (untouched)", val),
+                                ("Test (untouched)", test)):
+                print(f"{label:25s} | {_counts(part)}")
             outer = _prepare_scaled(train, val, test, mode)
-            print(f"Train after processing  | {_counts(outer['y_train'])}")
+            print(f"Train after processing    | {_counts(outer['y_train'])}")
+            print(f"IQR removed (Normal only): {outer['metadata']['iqr_removed']}")
+            if mode.startswith(("P1-", "P2-", "P3-", "P4-")):
+                ratio = CONFIGS[mode][2]
+                exp_n = 1475 if mode.startswith(("P3-", "P4-")) else TABLE5_TRAIN_NORMAL[ratio]
+                assert int(outer["y_train"].eq(0).sum()) == exp_n
+                assert int(outer["y_train"].eq(1).sum()) == 295
+                assert _counts(val) == _counts(outer["y_val"])
+                assert _counts(test) == _counts(outer["y_test"])
             cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=RANDOM_STATE)
             for i, (tr, va) in enumerate(cv.split(train[FEATURES], train["Class"])):
                 # Critical: K-Medoids / SMOTE and RobustScaler are fit only on CV train.
@@ -805,7 +875,7 @@ def run_sampling_experiments(csv_path, selected_groups=None, n_splits=5,
                                 "outer_val_fraud": int(val["Class"].eq(1).sum()),
                                 "test_normal": int(test["Class"].eq(0).sum()),
                                 "test_fraud": int(test["Class"].eq(1).sum()),
-                                "iqr_removed": removed})
+                                "iqr_removed": prepared["metadata"]["iqr_removed"]})
                 if save_datasets:
                     np.savez_compressed(output_dir / f"{mode}_fold{i+1}.npz",
                                         X_train=prepared["X_train"].to_numpy(),
@@ -820,7 +890,7 @@ def run_sampling_experiments(csv_path, selected_groups=None, n_splits=5,
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Exp1: fixed 6:2:2 + train-only 5-Fold CV")
+    parser = argparse.ArgumentParser(description="Exp1: fixed Table 5 holdouts + train-only preprocessing and CV")
     parser.add_argument("--csv", default=str(Path(__file__).resolve().parent / "data" / "creditcard.csv"))
     parser.add_argument("--groups", nargs="+", choices=[f"P{i}" for i in range(7)], default=["P0", "P1", "P2", "P3", "P4"])
     parser.add_argument("--folds", type=int, default=5)
