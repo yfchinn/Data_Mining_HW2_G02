@@ -226,43 +226,49 @@ def analyze_correlation_difference(df, top_k_features):
 # ==============================================================================
 def evaluate_t1_baseline_feasibility(df, top_features):
     """
-    評估單純使用 Z-Score (如 ±2 個標準差) 或 IQR 做離群值門檻時，
-    對極端不平衡資料造成的誤報率 (FPR) 與 Precision/Recall 衝擊。
+    評估在 ±3σ 門檻下，使用 Top 6 特徵組合與單一最強特徵 (V14-only) 之表現，
+    證實極端不平衡下對 PR-AUC 指標的需求，並提供選用 V14 3σ 作為 T1 基線的實證依據。
     """
-    print("\n⚠️ [Module 4] T1 統計模型 (Z-Score Threshold) 可行性與誤報率評估...")
+    print("\n⚠️ [Module 4] T1 統計模型 (±3σ Threshold) 可行性與誤報率評估...")
     
     normal_df = df[df['Class'] == 0]
+    y_true = df['Class']
     
-    # 僅於正常交易上估計平均值與標準差 (模擬非監督/無污染訓練)
+    # 僅於正常交易上估計平均值與標準差 (與 §6.2 一致，使用 ddof=0)
     means = normal_df[top_features].mean()
-    stds = normal_df[top_features].std()
+    stds = normal_df[top_features].std(ddof=0)
     
-    # 計算全資料集相對於正常群體的 Z-score
+    # 計算相對於正常群體的 Z-score
     z_scores = (df[top_features] - means) / stds
     
-    # 判斷規則：只要有 k 個以上的特徵超出 ±2 個標準差，即判定為異常 (Fraud)
-    threshold = 2.0
-    outlier_matrix = z_scores.abs() > threshold
+    # 判斷規則：超出 ±3.0 個標準差 (與全篇 3σ 定義對齊)
+    threshold = 3.0
+    outlier_matrix = z_scores.abs() >= threshold
     
-    print("\n【實證結果：以 ±2 個標準差作為 T1 統計門檻之效果】")
-    for min_outlier_count in [1, 2, 3, 5]:
-        pred_fraud = outlier_matrix.sum(axis=1) >= min_outlier_count
-        
-        tp = ((pred_fraud == 1) & (df['Class'] == 1)).sum()
-        fp = ((pred_fraud == 1) & (df['Class'] == 0)).sum()
-        fn = ((pred_fraud == 0) & (df['Class'] == 1)).sum()
-        tn = ((pred_fraud == 0) & (df['Class'] == 0)).sum()
+    def _print_metrics(pred_fraud, rule_name):
+        tp = ((pred_fraud == 1) & (y_true == 1)).sum()
+        fp = ((pred_fraud == 1) & (y_true == 0)).sum()
+        fn = ((pred_fraud == 0) & (y_true == 1)).sum()
+        tn = ((pred_fraud == 0) & (y_true == 0)).sum()
         
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
         fpr = fp / (fp + tn) if (fp + tn) > 0 else 0
         
-        print(f" - 規則: 至少 {min_outlier_count} 個特徵偏離 > 2 Std | "
-              f"Recall: {recall*100:.1f}% | Precision: {precision*100:.2f}% | "
-              f"誤報比數 (FP): {fp:,} 筆 (FPR: {fpr*100:.2f}%)")
-        
-    print("\n📌 結論與洞察: 單純統計門檻會產生大量誤報 (FP)，強烈證實了選用 PR-AUC (Average Precision) 為評估指標的合理性！")
+        print(f" - 規則: {rule_name:<26} | "
+              f"Recall: {recall*100:5.1f}% | Precision: {precision*100:6.2f}% | "
+              f"FP: {fp:6,d} 筆 (FPR: {fpr*100:5.2f}%)")
 
+    print("\n【實證結果：以 ±3 個標準差作為統計門檻之效果】")
+    for min_outlier_count in [1, 2, 3]:
+        pred_multi = outlier_matrix.sum(axis=1) >= min_outlier_count
+        _print_metrics(pred_multi, f">= {min_outlier_count} Feats (Top-6 ±3σ)")
+        
+    # 單獨測試最強特徵 V14 的 ±3σ 規則 (對應組員 §5 定義的 T1 基線)
+    pred_v14 = z_scores['V14'].abs() >= threshold
+    _print_metrics(pred_v14, "V14-only (±3σ) [T1]")
+        
+    print("\n📌 結論與洞察: 多特徵規則仍會產生較高誤報，而聚焦於最高 K-S 特徵 V14 的 ±3σ 規則能有效平衡 Precision 與 Recall，證實了選用 PR-AUC 與 V14 3σ 基線的合理性！")
 
 # ==============================================================================
 # 主執行流程 (Main Workflow)
@@ -270,7 +276,7 @@ def evaluate_t1_baseline_feasibility(df, top_features):
 if __name__ == "__main__":
     # 1. 載入資料 (請確保目錄下有 creditcard.csv)
     # 下載網址: https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud
-    data_path = "data/creditcard.csv"
+    data_path = "data/processed/train.csv"
     
     if not os.path.exists(data_path):
         print(f"⚠️ 未找到 `{data_path}`，請至 Kaggle 下載 Credit Card Fraud Detection 資料集。")

@@ -26,7 +26,7 @@ exp2：chronological 60/20/20，model seeds=42/43/44，報告跨 seed mean±samp
 
 7 種設定 × seeds 42/43/44 × exp1/exp2，共 42 次正常資料訓練。
 exp1 此處僅使用 fold 0，不能將下表的跨 seed 變異與上表跨 fold 變異混用。
-各變體均相對 baseline 改變一項設定；固定特徵集合採用組員既有 EDA，不重算 KS。
+各變體均相對 baseline 改變一項設定。固定六特徵最初取自團隊 EDA，後續用 Exp1 P0 的五個 training folds 重算 KS，確認平均排名的前六名一致。圖表來源與分析範圍見總整理第 3 節。[實驗結果總整理](EXPERIMENT_SUMMARY_ZH.md#報告第-4-章的特徵分析)
 
 | 設定 | exp1 AP | exp2 AP |
 | --- | --- | --- |

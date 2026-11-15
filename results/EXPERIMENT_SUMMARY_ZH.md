@@ -1,6 +1,6 @@
 # 信用卡異常偵測：實驗結果總整理
 
-更新日期：2026-11-04。這份文件彙整原始 **test 20%** 的正式實驗，以及新版 Exp1 先採樣再切分的追加探索，方便組員寫報告與製作簡報。
+更新日期：2026-11-08。這份文件彙整原始 **test 20%** 的正式實驗，以及新版 Exp1 先採樣再切分的追加探索，供報告與簡報引用。
 第 1–8 節為原始正式實驗及其 ablations；第 9 節使用不同資料分布，不能與正式 test 直接比較。
 不包含已還原的「先平衡資料再切分」及關閉 class weight 的分支。
 
@@ -52,7 +52,12 @@ Undersampling、IQR、SMOTE 只改變 training，validation/test 維持原分布
 - LR：C=1、L2、class_weight="balanced"、solver="lbfgs"、max_iter=2000；主比較尚未做 C/penalty 搜尋。
 - Time、Amount 使用 training-fitted RobustScaler，**沒有 log1p**；V1–V28 不變。T1/T2 的 scaler 只 fit 正常 training，T3 fit 完整 training。T3 採樣後不重 fit scaler。
 - 目前 T1/T2 只用 V 特徵，因此 Time/Amount 的 scaler 實際只影響 T3 的模型分數。
-- V14 與六特徵由團隊既有 EDA 指定，未重算 KS。既有 `feature_analysis.py` 主流程使用完整資料，因此報告不能把這個特徵選擇步驟描述成完全只看 training；需揭露這項限制。
+
+### 報告第 4 章的特徵分析
+
+我們訓練 T2 時固定使用 Exp1 P0 五個 training folds 的平均 KS 排名前六的特徵，依序為 V14、V10、V12、V4、V11、V17。[五折 KS 摘要](https://github.com/yfchinn/Data_Mining_HW2_G02/blob/eb53ef8aca50a005efce4af7ef12a02ca3d7410e/figures/feature_analysis_exp1_P0/feature_separation_summary.csv)
+
+第 4 章的三張圖均以 fold 0 的訓練資料繪製。[特徵分布](https://github.com/yfchinn/Data_Mining_HW2_G02/blob/eb53ef8aca50a005efce4af7ef12a02ca3d7410e/figures/feature_analysis_exp1_P0/fig1_feature_separation_fold_0.png) · [Time／Amount](https://github.com/yfchinn/Data_Mining_HW2_G02/blob/eb53ef8aca50a005efce4af7ef12a02ca3d7410e/figures/feature_analysis_exp1_P0/fig2_time_amount_fold_0.png) · [相關性差異](https://github.com/yfchinn/Data_Mining_HW2_G02/blob/eb53ef8aca50a005efce4af7ef12a02ca3d7410e/figures/feature_analysis_exp1_P0/fig3_correlation_difference_fold_0.png)
 
 ## 4. 主比較：train、validation、test 結果
 
@@ -219,7 +224,7 @@ C0 為無污染主設定；C1–C4 僅為敏感度研究，不替換正式主比
 
 ## 9. 新版 Exp1：P1–P4 三個 tiers 與 T2 污染實驗（追加探索）
 
-日期：2026-11-03。直接使用組員 `data_preparation_exp1_updated_v2.get_prepared_data`，seed=42、fold_index=None。
+日期：2026-11-03。使用 `data_preparation_exp1_updated_v2.get_prepared_data`，seed=42、fold_index=None。
 **P1–P4 三個 tiers 比較使用外層 60/20/20 的單次完整 train/validation/test，不是內層五折 CV，也不是三個 seeds 的平均。**
 另於 2026-11-04 追加 T2 P1-10 的 C0–C4 污染實驗，使用 seeds 42／43／44，結果整合於本文後段。
 8 組模式 × 3 模型＝24 個已訓練模型，72 列 partition 指標。
