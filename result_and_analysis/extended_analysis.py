@@ -215,9 +215,13 @@ def main():
     (root/"protocol.json").write_text(json.dumps(protocol,indent=2))
     for exp in args.experiments:
         for fold,train,val,test in get_folds(raw,exp,args.exp1_folds):
-            nested,ks=ks_select(train)
+            ranked,ks=ks_select(train)
+            # KS decides membership. Feature order is fixed before fitting so
+            # sklearn's seeded split choices are not confounded by column order.
+            nested=[f for f in FIXED6 if f in ranked] + [f for f in ranked if f not in FIXED6]
+            assert len(nested)==len(ranked)==6 and set(nested)==set(ranked)
             selected_rows.extend(dict(experiment=exp,fold=fold,feature=f,rank=i+1,KS=ks[f])
-                                 for i,f in enumerate(nested))
+                                 for i,f in enumerate(ranked))
             normal=train.loc[train.Class.eq(0)]
             # The T1 reference is deterministic across seeds. Recompute only once.
             t1_test=score_t1(train,test)
@@ -232,6 +236,9 @@ def main():
                 v14_only=IF_fit(normal,["V14"],seed)
                 sv=score_if(fixed,val,FIXED6); st=score_if(fixed,test,FIXED6)
                 nv=score_if(nested_model,val,nested); nt=score_if(nested_model,test,nested)
+                if set(nested)==set(FIXED6):
+                    np.testing.assert_allclose(sv,nv,rtol=0,atol=1e-12)
+                    np.testing.assert_allclose(st,nt,rtol=0,atol=1e-12)
                 ov=score_if(v14_only,val,["V14"])
                 tau=select_f1(val.Class,sv); nt_tau=select_f1(val.Class,nv)
                 fixed_scores.append(st);ref_scores.append(t1_test)
@@ -289,24 +296,32 @@ def main():
                 fraud=train.loc[train.Class.eq(1)]
                 total=len(normal) if args.contam_total==0 else args.contam_total
                 if len(normal)<total or len(fraud)==0 or total<=1: raise ValueError("Not enough training rows for requested contamination size")
-                normals_idx=normal.sort_values("row_id").index.to_numpy()
-                if args.contam_total: normals_idx=rand.choice(normals_idx,total,replace=False)
+                normals_idx=normal.index.to_numpy()
+                if args.contam_total:
+                    # A fixed pilot pool, selected before choosing contamination.
+                    normals_idx=np.sort(rand.choice(normals_idx,total,replace=False))
                 fmax=min(len(fraud),args.contam_max,total-1)
                 fraud_idx=rand.choice(fraud.index.to_numpy(),fmax,replace=False)
+                removal_order=rand.permutation(normals_idx)
                 count_levels=np.unique(np.floor(np.array([0,1/12,1/4,1/2,1])*fmax).astype(int))
                 baseline_ap=None
-                for n_fraud in count_levels:
-                    # Fix TOTAL at contam_total: every injected fraud displaces one normal.
-                    subset=pd.concat([normal.loc[normals_idx[:total-n_fraud]],
-                                      fraud.loc[fraud_idx[:n_fraud]].sort_values("row_id")])
+                for level,n_fraud in enumerate(count_levels):
+                    # Control total training size while randomly replacing normal
+                    # rows. Normal original order is retained for comparability.
+                    to_remove=set(removal_order[:n_fraud])
+                    keep=normal.loc[normals_idx]
+                    keep=keep.loc[~keep.index.isin(to_remove)]
+                    subset=pd.concat([keep,fraud.loc[fraud_idx[:n_fraud]].sort_values("row_id")])
                     assert len(subset)==total
                     cm=IF_fit(subset,FIXED6,seed)
                     cs=score_if(cm,val,FIXED6)
+                    if n_fraud==0 and args.contam_total==0:
+                        np.testing.assert_allclose(cs,sv,rtol=0,atol=1e-12)
                     ctau=select_f1(val.Class,cs)
                     metrics=stats(val.Class,cs,ctau)
                     if baseline_ap is None:baseline_ap=metrics["AP"]
                     contam_rows.append(dict(experiment=exp,fold=fold,seed=seed,
-                        n_total=total,n_normal=total-n_fraud,n_fraud=n_fraud,
+                        mode=f"C{level}",n_total=total,n_normal=total-n_fraud,n_fraud=n_fraud,
                         fraud_prevalence=float(n_fraud/total),
                         delta_AP_vs_size_matched_C0=metrics["AP"]-baseline_ap,
                         **metrics))
@@ -351,8 +366,10 @@ def main():
                    mean_path_split_count=("decision_path_split_count","mean")))
         mean.to_csv(root/"case_attribution_summary.csv",index=False)
     if contam_rows:
-        (pd.DataFrame(contam_rows).groupby(["experiment","n_fraud"],as_index=False)
-         .agg(n_runs=("AP","size"),mean_AP=("AP","mean"),sd_AP=("AP","std"),
+        (pd.DataFrame(contam_rows).groupby(["experiment","mode"],as_index=False)
+         .agg(n_runs=("AP","size"),mean_fraud_rows=("n_fraud","mean"),
+              min_fraud_rows=("n_fraud","min"),max_fraud_rows=("n_fraud","max"),
+              mean_AP=("AP","mean"),sd_AP=("AP","std"),
               mean_delta_AP=("delta_AP_vs_size_matched_C0","mean"),
               sd_delta_AP=("delta_AP_vs_size_matched_C0","std"))
          .to_csv(root/"size_matched_contamination_summary.csv",index=False))
