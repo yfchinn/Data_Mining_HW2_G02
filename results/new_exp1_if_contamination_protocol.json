@@ -1,6 +1,9 @@
 {
-  "source": "data_preparation_exp1_updated_v2",
+  "source": "data_preparation(exp1)v2.py",
+  "source_sha256": "9c17de8c3977dc13371e2f1147504b506f414765d18158c6386fafa6d234c679",
+  "preparation_protocol": "fixed Table 5 holdouts before train-only IQR/sampling",
   "mode": "P1-10",
+  "scope": "fixed outer holdouts; fold_index=None; no inner CV",
   "split_seed": 42,
   "seeds": [
     42,
@@ -23,6 +26,6 @@
   "order": "normal then fraud, each sorted by original row ID",
   "threshold": "validation best F1 per model, frozen for train/test",
   "preprocessing": "reuse P1-10 training-only scaler; selected V features unchanged",
-  "limitation": "exploratory pre-split undersampling; test prevalence differs from original benchmark",
+  "limitation": "fixed count holdouts; test prevalence differs from original benchmark",
   "status": "complete"
 }

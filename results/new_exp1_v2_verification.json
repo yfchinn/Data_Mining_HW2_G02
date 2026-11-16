@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-16",
+  "source": "data_preparation(exp1)v2.py",
+  "source_sha256": "9c17de8c3977dc13371e2f1147504b506f414765d18158c6386fafa6d234c679",
+  "source_commit": "cd64a02",
+  "tier_models": 24,
+  "contamination_models": 15,
+  "prediction_partitions_verified": 117,
+  "related_integration_tests_passed": 2,
+  "checks": [
+    "remote source bytes match",
+    "metrics recomputed from all saved scores",
+    "labels match original CSV",
+    "disjoint split IDs",
+    "paired mode holdout IDs equal",
+    "thresholds frozen across partitions and selected on validation",
+    "contamination fit counts and nested fraud subsets",
+    "summary mean and sample std match"
+  ],
+  "tier_output": "outputs\\exp1_v2_fixed_holdouts\\tiers\\seed_42",
+  "contamination_output": "outputs\\exp1_v2_fixed_holdouts\\if_contamination"
+}

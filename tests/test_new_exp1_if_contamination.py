@@ -7,10 +7,10 @@ from run_new_exp1_if_contamination import run
 
 def test_pollution_is_fitted_and_evaluation_is_fixed(tmp_path):
     rng=np.random.default_rng(12)
-    frame=pd.DataFrame(rng.normal(size=(1200,28)),columns=[f'V{i}' for i in range(1,29)])
-    frame['Time']=np.arange(1200)
-    frame['Amount']=rng.lognormal(size=1200)
-    frame['Class']=(np.arange(1200)%20==0).astype(int)
+    frame=pd.DataFrame(rng.normal(size=(10000,28)),columns=[f'V{i}' for i in range(1,29)])
+    frame['Time']=np.arange(10000)
+    frame['Amount']=rng.lognormal(size=10000)
+    frame['Class']=(np.arange(10000)<492).astype(int)
     frame.loc[frame.Class.eq(1),'V14']-=5
     source=tmp_path/'data.csv'
     frame.to_csv(source,index=False)

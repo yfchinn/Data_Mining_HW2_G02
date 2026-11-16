@@ -8,17 +8,18 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 
-import data_preparation_exp1_updated_v2 as prep
+from src.exp1_v2 import prep, source_metadata
 from run_if_contamination import FEATURES
 from src.evaluation import evaluate_scores, select_f1_threshold
 
 
-def run(csv_path=None, output_dir='outputs/new_exp1_if_contamination', seeds=(42,43,44)):
+def run(csv_path=None, output_dir='outputs/exp1_v2_fixed_holdouts/if_contamination', seeds=(42,43,44)):
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=False)
     base = prep.get_prepared_data(mode='P1-10', fold_index=None,
                                   csv_path=csv_path, random_state=42)
-    protocol = dict(source='data_preparation_exp1_updated_v2', mode='P1-10',
+    protocol = dict(**source_metadata(), mode='P1-10',
+        scope='fixed outer holdouts; fold_index=None; no inner CV',
         split_seed=42, seeds=list(seeds), features=FEATURES,
         n_estimators=200, max_samples=256, sklearn_contamination='auto',
         fraud_counts='floor(min(360, available training fraud) * [0,1/12,1/4,1/2,1])',
@@ -26,7 +27,7 @@ def run(csv_path=None, output_dir='outputs/new_exp1_if_contamination', seeds=(42
         order='normal then fraud, each sorted by original row ID',
         threshold='validation best F1 per model, frozen for train/test',
         preprocessing='reuse P1-10 training-only scaler; selected V features unchanged',
-        limitation='exploratory pre-split undersampling; test prevalence differs from original benchmark',
+        limitation='fixed count holdouts; test prevalence differs from original benchmark',
         status='running')
     (output/'protocol.json').write_text(json.dumps(protocol,indent=2))
     np.savez_compressed(output/'base_split_ids.npz', **{
@@ -92,4 +93,10 @@ def run(csv_path=None, output_dir='outputs/new_exp1_if_contamination', seeds=(42
 
 
 if __name__=='__main__':
-    run()
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--csv', type=Path)
+    parser.add_argument('--output-dir', type=Path,
+                        default=Path('outputs/exp1_v2_fixed_holdouts/if_contamination'))
+    args = parser.parse_args()
+    run(args.csv, args.output_dir)

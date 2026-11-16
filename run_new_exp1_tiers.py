@@ -1,4 +1,4 @@
-"""Three tiers on new pre-split P1-P4 outer 60/20/20, seed 42."""
+"""Three tiers on Exp1 v2 fixed P1-P4 outer holdouts, seed 42; no inner CV."""
 import json
 from pathlib import Path
 from time import perf_counter
@@ -6,20 +6,20 @@ from time import perf_counter
 import joblib
 import numpy as np
 import pandas as pd
-import data_preparation_exp1_updated_v2 as prep
+from src.exp1_v2 import prep, source_metadata
 from src.models import ThreeSigmaDetector, IsolationForestDetector, LogisticRegressionDetector
 from src.evaluation import evaluate_scores, select_f1_threshold
 
 
-def run(csv_path=None, output_dir='outputs/new_exp1_tiers/seed_42', seed=42):
+def run(csv_path=None, output_dir='outputs/exp1_v2_fixed_holdouts/tiers/seed_42', seed=42):
     output=Path(output_dir)
     output.mkdir(parents=True,exist_ok=False)
     modes=[m for m in prep.CONFIGS if m.startswith(('P1-','P2-','P3-','P4-'))]
     records=[]; counts=[]
-    protocol=dict(seed=seed,scope='outer 60/20/20; no inner CV; exploratory pre-split sampling',
-        source='data_preparation_exp1_updated_v2.get_prepared_data',modes=modes,
+    protocol=dict(seed=seed,scope='fixed outer holdouts; fold_index=None; no inner CV',
+        **source_metadata(),modes=modes,
         thresholds='T1 fixed 3; T2/T3 validation best F1, frozen before test',
-        limitation='different mode test populations; IQR pre-split; cannot interpret as common-test benchmark',
+        limitation='holdouts shared within each ratio, different across ratios; test prevalence differs from original benchmark',
         models={},status='running')
     (output/'protocol.json').write_text(json.dumps(protocol,indent=2))
     for mode in modes:
@@ -70,7 +70,7 @@ if __name__=='__main__':
     import argparse
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--csv',type=Path)
-    parser.add_argument('--output-dir',type=Path,default=Path('outputs/new_exp1_tiers/seed_42'))
+    parser.add_argument('--output-dir',type=Path,default=Path('outputs/exp1_v2_fixed_holdouts/tiers/seed_42'))
     parser.add_argument('--seed',type=int,default=42)
     args=parser.parse_args()
     run(args.csv,args.output_dir,args.seed)

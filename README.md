@@ -1,12 +1,17 @@
 # Data_Mining_HW2_G02
 
-## 新版 Exp1：預先採樣 P1–P4 的三個 tiers
+## 新版 Exp1 v2：固定 holdout 的 P1–P4 三個 tiers
 
 `uv run --frozen python run_new_exp1_tiers.py` 直接使用
-`data_preparation_exp1_updated_v2.py` 的 outer 60/20/20 接口，seed42，
+`data_preparation(exp1)v2.py` 的固定外層 holdout 接口，seed42、fold_index=None，
 對八組 P1–P4 模式執行三個 tiers 的 train/validation/test；不含 inner CV。
 結果見 `results/EXPERIMENT_SUMMARY_ZH.md`，模型與逐筆預測存於
-`outputs/new_exp1_tiers/seed_42/`。這是獨立探索協定，原正式 test 結果保留。
+`outputs/exp1_v2_fixed_holdouts/tiers/seed_42/`。
+IQR／採樣只作用於 training；相同比例的模式共用 holdout，不同比例的 holdout 不同。
+P1-10 的三 seeds IF 污染實驗使用 `uv run --frozen python run_new_exp1_if_contamination.py`，
+輸出於 `outputs/exp1_v2_fixed_holdouts/if_contamination/`。
+兩支 runner 均拒絕覆寫既有目錄，可用 `--output-dir` 指定新目錄。
+這是獨立探索協定，原正式 test 結果保留；2026-11-16 新結果已取代總整理第 9 節。
 
 ## 環境（uv）
 
