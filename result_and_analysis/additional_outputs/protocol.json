@@ -1,0 +1,19 @@
+{
+  "dataset_sha256": "76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89",
+  "data_rows": 284807,
+  "feature_sets": "fixed six versus train-fold-only KS six",
+  "threshold": "F1 from validation; capacity rate set on validation, separately",
+  "contamination": "fixed count; replace normals with nested fraud subsets; validation only",
+  "test_use": "retrospective diagnostic on previously inspected P0 test, not independent fresh test",
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "exp1_folds": 5,
+  "sklearn_IF": {
+    "n_estimators": 200,
+    "max_samples": 256,
+    "contamination": "auto"
+  }
+}
