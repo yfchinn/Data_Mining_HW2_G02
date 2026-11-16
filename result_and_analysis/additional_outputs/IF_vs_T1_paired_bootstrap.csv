@@ -1,0 +1,3 @@
+experiment,comparison,mean_AP_gap,CI_low,CI_high,excludes_zero,repeats,unit,caution
+exp1,IF_fixed6_minus_T1_3sigma,-0.0021968731986574674,-0.05387995111478494,0.055101896228058916,False,1000,"paired test transaction, class-stratified",conditional on observed test set and trained models; card dependence unknown
+exp2,IF_fixed6_minus_T1_3sigma,-0.1553817701925898,-0.21040190060241265,-0.08374275591554832,True,1000,"paired test transaction, class-stratified",conditional on observed test set and trained models; card dependence unknown
